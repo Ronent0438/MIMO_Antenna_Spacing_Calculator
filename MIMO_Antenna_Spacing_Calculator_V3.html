@@ -1,0 +1,2837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIMO Antenna Spacing Calculator — Ceragon</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --navy:#0b1f3a; --navy2:#122947; --navy3:#1a3a5c;
+  --blue:#1d6fc4; --blue-l:#dbeafe; --blue-m:#60a5fa;
+  --teal:#0891b2; --teal-l:#cffafe;
+  --green:#059669; --green-l:#d1fae5; --green-d:#065f46;
+  --amber:#d97706; --amber-l:#fef3c7;
+  --red:#dc2626; --red-l:#fee2e2;
+  --border:#cbd5e1; --border-l:#e2e8f0;
+  --text:#0f172a; --text2:#334155; --text3:#64748b;
+  --bg:#f0f5fb; --card:#ffffff; --sl:#f1f5f9;
+  --mono:'IBM Plex Mono', monospace;
+  --sans:'IBM Plex Sans', sans-serif;
+}
+
+/* ── DARK MODE ── */
+body.dark {
+  --navy:#0d1b2a; --navy2:#0f2236; --navy3:#152c47;
+  --blue:#3b82f6; --blue-l:#1e3a5f; --blue-m:#60a5fa;
+  --teal:#22d3ee; --teal-l:#164e63;
+  --green:#34d399; --green-l:#064e3b; --green-d:#6ee7b7;
+  --amber:#fbbf24; --amber-l:#451a03;
+  --red:#f87171; --red-l:#450a0a;
+  --border:#2d3f55; --border-l:#1e3048;
+  --text:#e2e8f0; --text2:#cbd5e1; --text3:#94a3b8;
+  --bg:#0d1b2a; --card:#112032; --sl:#0f2236;
+}
+body.dark .gauge-track {
+  background: linear-gradient(90deg,#450a0a 0%,#451a03 30%,#064e3b 50%,#451a03 70%,#450a0a 100%);
+}
+body.dark .sp-track {
+  background: linear-gradient(90deg,#450a0a 0%,#451a03 25%,#064e3b 50%,#451a03 75%,#450a0a 100%);
+}
+body.dark .info-box {
+  background:#0c2d3a; border-color:#164e63; color:#a5f3fc;
+}
+body.dark .city-drop { background:var(--card); }
+body.dark .city-opt:hover { background:#1e3a5f; }
+body.dark select, body.dark input[type=number], body.dark input[type=text] {
+  background:var(--sl); color:var(--text); border-color:var(--border);
+}
+body.dark .detail-table th, body.dark .mod-table th, body.dark .card-hdr,
+body.dark .sec-hdr { background: linear-gradient(90deg,#0d1b2a,#0f2236); }
+body.dark .mod-table tr.active-mod { background:#1e3a5f !important; }
+body.dark #terrainProfileCard { background:var(--sl); border-color:var(--border-l); }
+body.dark .sp-slider-lbl span { color:var(--text2); }
+
+/* ── DARK TOGGLE BUTTON ── */
+.dark-toggle {
+  background: rgba(255,255,255,.1); border: 1.5px solid rgba(255,255,255,.2);
+  color: #e2e8f0; border-radius: 8px; padding: 5px 11px;
+  cursor: pointer; font-family: var(--sans); font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; transition: all .15s;
+}
+.dark-toggle:hover { background: rgba(255,255,255,.18); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; }
+
+/* ── HEADER ── */
+.hdr {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
+  color: #fff; padding: 14px 24px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  box-shadow: 0 2px 16px rgba(11,31,58,.35);
+}
+.hdr-left { display: flex; align-items: center; gap: 14px; }
+.ceragon-logo { display: flex; align-items: center; gap: 8px; }
+.logo-mark {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: linear-gradient(135deg, #1d6fc4, #0891b2);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff; letter-spacing: -1px;
+}
+.hdr-title { font-size: 16px; font-weight: 600; letter-spacing: -.02em; }
+.hdr-sub { font-size: 10px; color: #93c5fd; margin-top: 2px; letter-spacing: .05em; }
+.hdr-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
+  border: 1.5px solid; letter-spacing: .03em; }
+.badge-mimo { background: rgba(8,145,178,.18); border-color: #22d3ee; color: #67e8f9; }
+
+/* ── LAYOUT ── */
+.wrap { max-width: 1300px; margin: 0 auto; padding: 16px; display: grid;
+  grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+
+/* ── CARDS ── */
+.card { background: var(--card); border: 1px solid var(--border-l);
+  border-radius: 12px; overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,.07); }
+.card-hdr {
+  background: linear-gradient(90deg, #0b1f3a, #122947);
+  padding: 8px 14px; font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: #93c5fd;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: center; gap: 7px;
+}
+.card-body { padding: 14px; }
+.inp-stack { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── FORM FIELDS ── */
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.lbl { font-size: 10px; font-weight: 600; color: var(--text3);
+  letter-spacing: .06em; text-transform: uppercase; }
+select, input[type=number] {
+  width: 100%; padding: 7px 10px; border: 1.5px solid var(--border);
+  border-radius: 7px; font-family: var(--sans); font-size: 12.5px;
+  color: var(--text); background: var(--card); outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+select:focus, input[type=number]:focus {
+  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,111,196,.12);
+}
+.unit-row { display: flex; gap: 6px; align-items: stretch; }
+.unit-row input { flex: 1; }
+.unit-lbl { display: flex; align-items: center; font-size: 11px;
+  font-family: var(--mono); color: var(--text3); padding: 0 6px;
+  background: var(--sl); border: 1.5px solid var(--border);
+  border-radius: 7px; white-space: nowrap; }
+
+/* ── SPACING INPUTS ── */
+.spacing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ── CALC BUTTON ── */
+.calc-btn {
+  width: 100%; padding: 10px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #1d6fc4, #0891b2);
+  color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s; letter-spacing: .02em;
+  box-shadow: 0 2px 8px rgba(29,111,196,.3);
+}
+.calc-btn:hover { background: linear-gradient(135deg, #1558a0, #0773a0);
+  box-shadow: 0 4px 14px rgba(29,111,196,.4); transform: translateY(-1px); }
+.calc-btn:active { transform: translateY(0); }
+
+/* ── RESULTS PANEL ── */
+.res-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── RESULT SUMMARY ── */
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.metric-card {
+  background: var(--card); border: 1px solid var(--border-l);
+  border-radius: 10px; padding: 12px 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.metric-lbl { font-size: 9.5px; font-weight: 600; color: var(--text3);
+  letter-spacing: .08em; text-transform: uppercase; }
+.metric-val { font-family: var(--mono); font-size: 22px; font-weight: 600; }
+.metric-unit { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.mv-blue { color: var(--blue); }
+.mv-green { color: var(--green); }
+.mv-amber { color: var(--amber); }
+.mv-red { color: var(--red); }
+.mv-teal { color: var(--teal); }
+
+/* ── STATUS BOX ── */
+.status-box {
+  border-radius: 10px; padding: 12px 16px; border: 1.5px solid;
+  display: flex; align-items: center; gap: 14px;
+}
+.status-ok { background: var(--green-l); border-color: var(--green); color: var(--green-d); }
+.status-warn { background: var(--amber-l); border-color: var(--amber); color: #92400e; }
+.status-fail { background: var(--red-l); border-color: var(--red); color: var(--red); }
+.status-icon { font-size: 24px; }
+.status-text-wrap { flex: 1; }
+.status-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+.status-sub { font-size: 11.5px; opacity: .85; }
+
+/* ── DETAIL TABLE ── */
+.detail-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.detail-table th {
+  background: linear-gradient(90deg, #0b1f3a, #122947);
+  color: #93c5fd; padding: 8px 12px; text-align: left;
+  font-size: 10px; letter-spacing: .07em; text-transform: uppercase; font-weight: 600;
+}
+.detail-table td { padding: 9px 12px; border-bottom: 1px solid var(--border-l); }
+.detail-table tr:last-child td { border-bottom: none; }
+.detail-table tbody tr:hover { background: var(--sl); }
+.td-mono { font-family: var(--mono); font-weight: 500; }
+.td-formula { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.td-green { color: var(--green); font-weight: 600; }
+.td-amber { color: var(--amber); font-weight: 600; }
+.td-red { color: var(--red); font-weight: 600; }
+.td-blue { color: var(--blue); font-weight: 600; }
+
+/* ── MODULATION TABLE ── */
+.mod-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.mod-table th {
+  background: linear-gradient(90deg, #0b1f3a, #122947);
+  color: #93c5fd; padding: 8px 12px; font-size: 10px;
+  letter-spacing: .07em; text-transform: uppercase; font-weight: 600; text-align: center;
+}
+.mod-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-l);
+  text-align: center; font-family: var(--mono); }
+.mod-table tr.active-mod { background: #dbeafe !important; }
+.mod-table tr.active-mod td { color: var(--blue); font-weight: 700; }
+.mod-table tr.active-mod td:first-child { border-left: 3px solid var(--blue); }
+.mod-table tr.mod-row-degraded td { opacity: .45; }
+.mod-table tbody tr:hover { background: var(--sl); }
+
+/* ── MIMO CONFIG BUTTONS ── */
+.mimo-cfg-btn {
+  padding: 4px 11px; border-radius: 6px; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text2); font-family: var(--sans);
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.mimo-cfg-btn:hover { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+.mimo-cfg-btn.active { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+/* capacity columns */
+.cap-col { font-size: 9.5px !important; white-space: nowrap; }
+.cap-val { font-family: var(--mono); font-size: 11px; }
+.cap-val-max { font-weight: 700; color: var(--blue); }
+
+/* ── MAP ── */
+#mimoMap { height: 340px; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border-l); position: relative; z-index: 0; }
+.map-instructions {
+  background: linear-gradient(135deg, #eff6ff, #f0f9ff);
+  border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 13px;
+  font-size: 11.5px; color: #1e40af; line-height: 1.6; margin-bottom: 10px;
+}
+.map-site-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.site-pin-box {
+  background: var(--sl); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 11px;
+}
+.site-pin-lbl { font-weight: 600; color: var(--text2); margin-bottom: 4px; font-size: 10px;
+  letter-spacing: .05em; text-transform: uppercase; }
+.site-pin-val { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.map-clear-btn {
+  font-size: 11px; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--card); cursor: pointer;
+  color: var(--text2); transition: all .12s;
+}
+.map-clear-btn:hover { background: var(--red-l); border-color: var(--red); color: var(--red); }
+
+/* ── ALPHA GAUGE ── */
+.gauge-wrap { padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.gauge-track {
+  width: 100%; height: 18px; border-radius: 9px; position: relative;
+  background: linear-gradient(90deg, #fee2e2 0%, #fef3c7 30%, #d1fae5 50%, #fef3c7 70%, #fee2e2 100%);
+  border: 1.5px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+.gauge-needle {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--navy); border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  transition: left .4s cubic-bezier(.34,1.56,.64,1);
+  cursor: grab;
+}
+.gauge-needle.dragging {
+  transition: none;
+  cursor: grabbing;
+  box-shadow: 0 3px 14px rgba(0,0,0,.45);
+}
+.gauge-labels { width: 100%; display: flex; justify-content: space-between;
+  font-size: 10px; font-family: var(--mono); color: var(--text3); }
+.alpha-display { font-family: var(--mono); font-size: 28px; font-weight: 600; }
+.alpha-status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+/* ── SPACING SLIDERS ── */
+.sp-slider-wrap { margin-top:6px; }
+.sp-slider-lbl { font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center; }
+.sp-slider-lbl span { font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--text2); }
+.sp-track {
+  width:100%; height:14px; border-radius:7px; position:relative;
+  background: linear-gradient(90deg, #fee2e2 0%, #fef3c7 25%, #d1fae5 50%, #fef3c7 75%, #fee2e2 100%);
+  border:1.5px solid var(--border); cursor:pointer; user-select:none; margin-bottom:2px;
+}
+.sp-needle {
+  position:absolute; top:50%; transform:translate(-50%,-50%);
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.3);
+  transition:left .25s cubic-bezier(.34,1.56,.64,1); cursor:grab;
+}
+.sp-needle.dragging { transition:none; cursor:grabbing; }
+.sp-needle-a { background:#1d6fc4; }
+.sp-needle-b { background:#059669; }
+/* optimal tick mark */
+.sp-tick-opt {
+  position:absolute; top:0; width:2px; height:100%;
+  background:rgba(0,0,0,.25); border-radius:1px; pointer-events:none;
+}
+.sp-tick-label {
+  position:absolute; top:calc(100% + 2px); font-size:8.5px;
+  font-family:var(--mono); color:var(--text3); transform:translateX(-50%);
+  white-space:nowrap; pointer-events:none;
+}
+
+/* ── SECTION HDR ── */
+.sec-hdr {
+  background: linear-gradient(90deg, var(--navy), var(--navy2));
+  padding: 8px 14px; border-radius: 10px 10px 0 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-hdr-title { font-size: 11px; font-weight: 600; color: #e2e8f0;
+  letter-spacing: .06em; text-transform: uppercase; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--text3);
+}
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-title { font-weight: 600; font-size: 14px; color: var(--text2); margin-bottom: 5px; }
+.empty-sub { font-size: 12px; }
+
+/* ── USE CASE PRESETS ── */
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.preset-btn {
+  flex: 1; min-width: 100px; padding: 8px 8px; border-radius: 8px;
+  border: 1.5px solid var(--border); cursor: pointer;
+  background: var(--card); color: var(--text2); font-family: var(--sans);
+  font-size: 11px; font-weight: 600; text-align: center;
+  transition: all .15s; line-height: 1.35;
+}
+.preset-btn:hover { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+.preset-btn.active { border-color: var(--blue); background: var(--blue-l); color: var(--blue); }
+.preset-sub { font-size: 9.5px; font-weight: 400; display: block; margin-top: 2px; opacity: .75; }
+
+/* ── SEPARATOR ── */
+.sep { height: 1px; background: var(--border-l); margin: 2px 0; }
+
+/* ── INFO BOX ── */
+.info-box {
+  background: var(--teal-l); border: 1px solid #a5f3fc;
+  border-radius: 8px; padding: 9px 12px; font-size: 11.5px; color: #0c4a6e;
+  line-height: 1.55;
+}
+
+/* ── MAP LAYER BTNS ── */
+.map-layer-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.layer-btn {
+  padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid var(--border); cursor: pointer; background: var(--card);
+  color: var(--text3); transition: all .12s;
+}
+.layer-btn.active { background: var(--navy); color: #e2e8f0; border-color: var(--navy); }
+
+/* ── CITY SEARCH ── */
+.city-search {
+  width: 100%; padding: 6px 9px; border: 1.5px solid var(--border);
+  border-radius: 7px; font-family: var(--sans); font-size: 12px;
+  color: var(--text); background: var(--sl); outline: none;
+  transition: border-color .15s;
+}
+.city-search:focus { border-color: var(--blue); background: var(--card); }
+.city-drop {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.15);
+  max-height: 180px; overflow-y: auto; display: none;
+  margin-top: 2px;
+}
+.city-drop.open { display: block; }
+.city-opt {
+  padding: 7px 11px; cursor: pointer; font-size: 12px; color: var(--text2);
+  border-bottom: 1px solid var(--border-l);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.city-opt:last-child { border-bottom: none; }
+.city-opt:hover { background: var(--blue-l); color: var(--blue); }
+.city-opt-name { font-weight: 600; font-size: 12px; }
+.city-opt-country { font-size: 10px; color: var(--text3); }
+.city-opt:hover .city-opt-country { color: var(--blue); opacity: .75; }
+
+/* ── FORMAT TOGGLE ── */
+.fmt-btn {
+  padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700;
+  border: 1.5px solid var(--border); cursor: pointer; background: var(--card);
+  color: var(--text3); letter-spacing: .03em; transition: all .12s;
+  font-family: var(--mono);
+}
+.fmt-btn.active { background: var(--navy); color: #e2e8f0; border-color: var(--navy); }
+
+/* ── LINK DISTANCE LABEL ── */
+.link-dist-label {
+  pointer-events: none !important;
+}
+.link-dist-label div {
+  background: rgba(11,31,58,.72);
+  color: rgba(255,255,255,.92);
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  border: 1px solid rgba(96,165,250,.5);
+  transform: translate(-50%, -50%);
+  display: inline-block;
+  line-height: 1.5;
+  backdrop-filter: blur(2px);
+  letter-spacing: .01em;
+}
+.coord-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: .06em; margin-bottom: 2px; font-weight: 600; }
+.coord-inp { width: 100%; padding: 5px 7px; border: 1.5px solid var(--border);
+  border-radius: 6px; font-family: var(--sans); font-size: 11px;
+  color: var(--text); background: var(--card); outline: none;
+  transition: border-color .15s; }
+.coord-inp:focus { border-color: var(--blue); }
+.dms-inp { text-align: center; }
+.dms-hint { font-size: 9.5px; color: var(--text3); text-align: center;
+  margin-top: 4px; font-family: var(--mono); }
+/* ── EXPIRY OVERLAY ── */
+#expiryOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(11,31,58,.82);
+  backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+}
+#expiryOverlay.show { display: flex; }
+.expiry-box {
+  background: var(--card); border-radius: 18px;
+  border: 2px solid var(--red);
+  box-shadow: 0 0 60px rgba(220,38,38,.35), 0 20px 60px rgba(0,0,0,.4);
+  padding: 40px 48px; max-width: 520px; width: 90%; text-align: center;
+}
+.expiry-icon { font-size: 52px; margin-bottom: 14px; }
+.expiry-title {
+  font-size: 22px; font-weight: 700; color: var(--red);
+  margin-bottom: 10px; letter-spacing: -.02em;
+}
+.expiry-sub {
+  font-size: 13.5px; color: var(--text2); line-height: 1.7; margin-bottom: 24px;
+}
+.expiry-date {
+  display: inline-block;
+  font-family: var(--mono); font-size: 15px; font-weight: 600;
+  background: var(--red-l); color: var(--red);
+  border: 1.5px solid var(--red); border-radius: 8px;
+  padding: 6px 16px; margin-bottom: 24px;
+}
+.expiry-unlock {
+  display: flex; gap: 8px; margin-top: 10px; justify-content: center;
+}
+.expiry-unlock input {
+  padding: 7px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+  font-family: var(--mono); font-size: 13px; color: var(--text);
+  background: var(--sl); width: 160px; outline: none;
+  transition: border-color .15s;
+}
+.expiry-unlock input:focus { border-color: var(--blue); }
+.expiry-unlock button {
+  padding: 7px 16px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #1d6fc4, #0891b2);
+  color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s;
+}
+.expiry-unlock button:hover { opacity: .85; }
+.expiry-err { font-size: 11px; color: var(--red); margin-top: 8px; min-height: 16px; }
+.badge-expiry {
+  background: rgba(217,119,6,.18); border-color: #fbbf24; color: #fde68a;
+  display: flex; align-items: center; gap: 5px; cursor: default;
+  transition: background .3s;
+}
+.badge-expiry.urgent { background: rgba(220,38,38,.22); border-color: #f87171; color: #fecaca; }
+.badge-expiry .exp-countdown { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+</style>
+<body>
+
+<!-- EXPIRY OVERLAY -->
+<div id="expiryOverlay">
+  <div class="expiry-box">
+    <div class="expiry-icon">🔒</div>
+    <div class="expiry-title">Tool Licence Expired</div>
+    <div class="expiry-sub">
+      This evaluation version of the <strong>MIMO Antenna Spacing Calculator</strong>
+      has reached its expiry date. Please contact Ceragon for an updated version.
+    </div>
+    <div class="expiry-date">Expired: 30 September 2026</div>
+    <div class="expiry-sub" style="font-size:12px;margin-bottom:10px;">
+      Authorised users may enter their username to continue.
+    </div>
+    <div class="expiry-unlock">
+      <input type="text" id="expiryUser" placeholder="Username" autocomplete="off"
+             onkeydown="if(event.key==='Enter') checkExpiryUser()">
+      <button onclick="checkExpiryUser()">Unlock</button>
+    </div>
+    <div class="expiry-err" id="expiryErr"></div>
+  </div>
+</div>
+
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="ceragon-logo">
+      <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACUAKYDASIAAhEBAxEB/8QAGwABAQEBAAMBAAAAAAAAAAAAAAYFBwECAwT/xAA1EAABAwQBAgMFBwMFAAAAAAAAAQIDBAUGESEHEhMxQRQiUWFxFRYjMlKBoQhDYhcmcoKR/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAIDAQQFBgj/xAAsEQACAQIFAgUEAwEAAAAAAAAAAQIDEQQSITFBBVEiYXGh8BMygeEUUpGx/9oADAMBAAIRAxEAPwDn4APMn0MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAadnsF3u7FloaPcDV06omkZDC347kkVG8evOzfoMItkidtf1Iwuil9WNrHTIn1ciIhJQk9jWq4yjSbUpartdv/FdkaDotw6O5QludcserLRlFI1NudbKpHSJ/1XW/2VV+RzpUVrnNc1zXNVWua5FRWqnCoqL5Ki+glCUPuQw2MoYpN0Zp237r1W6/IABE2QV3Tnp5kOdTTOtTYKehpndtTW1DtRxrrfaiJy52lRdJ5IvKptNyJ1/oj1PsuM41X4lksFRFbquSR7KymYr3R+I1Gua5qcr5bRURfPWuC2jGEp2m9Dm9WrYujhZSwkc0/wDdOWly/IirhacHoah9N97rhcHxuVrpqO1J4KqnC9qvkRXJ80TS+mxacZtF6zWyY/ZMidVxXR6sfPJQuifTORrl7XNVdOX3fNq658z41+L2iKZUs+c45WUW9RPqXzU03b6d0bol0uvh/wCH7sBns2M9UMcuNRf6SroqWdZaupghmSOH8N7dJ3NRz/NOUbrkWWZJpWuvm5XOc1RnKlUlKSjKycebO11lVnfZaa6amxn/AE+xfB7vBar/AJrUsqZ4kljSG0q9FbtU8/E89oeel/S6nz6pvH2dkLoKS3ysZFLJRe9M1yKu1b3e75eW1KfrPl9JlV5/251EtVLaJKJIJ6aeKZqvcqu7v7Dl0qKicKh6f06ZdimEuyGmvuQUsaTTxezzRxyvZMjWrtzfc3rn1RFNhQpfWtpl9f2cV4vqS6W6qcnWstMvmr6ZFrbi77kliOA2LKcqqcYtmU1Udzg8bST2zUb/AAndrvebIuufiSWX2GrxjJK2w10sEtRRydj3wu2x20RUVPVOFThfIs8Cz2jsl8vtsuXjMsV4rJ3OuFAqw1tMjpVc2RkjffVutKrP480XOtFnwmnzqR97y+numO06LUrK2GZZ65edQq1W7Ryr+ZVXSp68rqlxjKKy7/PlzqUq+Ko15utmcFFNLLdt82aSs+Mr9b2NXA+jt5yvEp72yvgoqiSJ01to5U26rYifnVd7Y1XcIul+PkpztKGtW5fZiUc/t/j+z+zdv4ni93b2a/V3cFavUq/t6lRZvD2xSQr4UVExdRNpU4Sn0nGtev6ve+RadScpwepyaxdScSuFOt7ppY5q+1TQvYs/Gvzdvaj2oqtVdrvhU3285caUo+F2t7rv+iEMT1GhXtWjmU1eNlpGX9W1w9PE+fImb10yTFLXTVudZHS2aarRfAoKaB1XUu15/lVGprabXfaiqnJh01twepmSH71XSiVy6bNVWlHRovxd4cjnIn7KXXVvI8M6mLb7tR5Aliu1NAsT6O508vhPaq74lja5qKi7+vy0YvSygwS1X+pqs9vWN3G1rSOZFFTTTVDkm72Kju1sacdqPT904MyhHPaNrd7/APSuhisT/EdXEOaqa3jGK77RvF305uyXxLEb1lt/ls+NwtrXxq5XVDl8OJsaLpJHKvLUX0TSu58uF1qZLjGL41c5rRcsrqa6407uyoZbrd3RxO9Wq9727VPXXl9eCo6bdSbDg/UO/wAtHQPkxi5Tag8CNWvga1V7HI12lVulXaLpfIlsxtOO3HI7hdMdzSzSUVbUyVKR3Hx6WaJZHK5zVR0enIiqulRfLX1I5YKGmr+bF6xOKni3GopQp5U00r3b3UnZ2a7aGhjfTaHMbfVz4TkcNfW0bUdNb66mWlm0vkqO25qpwqb3raaVUPl0y6bVOZVt/oKm5NslVZvDZKyph7vxHOkZ2O95NadHr13vgoulGSYb0xbcbtU3xMgvVVCkUdJbYJEhjai7XcsjWoqqvw8kTyXZiWrMKSus3U+rvNRDTXLI4qd9LAxjlR72ySKrGrrSdrVam11vz+JNRpeFvfW6ua06/UZfWjSvl8GWTjrdyipaWV0k3rb8vcweoGH5XilY2DJqOZIkd2U9Sj/Ep3p6Ix3k3/iqIvyPH3UX/TJc19uTtS5JQey+Hzy3fd3b/jRQ4L1bvdkofsPIIGZNj8jfDkpK1e+RjPLTXu3tP8Xb+SobXUjIOnM3SZLLhFTNDJUXZldJb5o5EdB7qo5EVU1pF1wjl8+OCOSm05J8bPf9lzxXUKU6dCpT3kvFFXi483W8X7dmcxxnILvi13ivNiq3UtXCvdwq9kqfokRPzNX1Rfqml0pf/wBStNQffS2XqhiSnderTFWzwoibR6qqdy/NU0n1apM9P8Rjv0kl2vkq0GK0K91wrn8I9E/sx+rnu8tN3rn11v8AN1HymXMsvqr6+BaaFzWw0sCqn4MDN9jeON8qq642qkU2qTT52NmUI1eoxnT3gmpP1taL81q/L8k6ACk6wAAAAAAAAAAAAAAAAAAAAAPaNGOkaj39jVXl3bvX7ep6gA2qW12GRd1GY0lMnw+zat7v4j1/JqQy9PrMqTMgu2V1SJ7rKhEoaNF+LmorpH/TaIvy8yRBJStwjWnhnP7qkrdrpe6SfubmV5VeMkdBHXyxQ0VKmqSgpY/CpadP8I043812vzMMAw227supUoUoqEFZIAAwTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/Z" alt="Ceragon" style="height:42px;width:42px;border-radius:9px;object-fit:cover;flex-shrink:0;">
+      <div>
+        <div class="hdr-title">MIMO Antenna Spacing Calculator</div>
+        <div class="hdr-sub">SNR IMPROVEMENT · MAX MODULATION · ALPHA ANALYSIS</div>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-badges">
+    <div class="badge badge-mimo">4×4 MIMO</div>
+    <div class="badge badge-expiry" id="expiryBadge" title="This tool has a usage time limit">
+      <span>⏳</span>
+      <span class="exp-countdown" id="expiryCountdown">Loading…</span>
+    </div>
+    <button class="dark-toggle" onclick="showHelp()" style="background:rgba(255,255,255,.08);">
+      <span>❓</span><span>Help</span>
+    </button>
+    <button class="dark-toggle" id="darkToggle" onclick="toggleDark()">
+      <span id="darkIcon">🌙</span><span id="darkLabel">Dark</span>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="wrap">
+
+  <!-- LEFT PANEL: INPUTS -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
+
+    <!-- PRESETS -->
+    <div class="card">
+      <div class="card-hdr">⚡ Use Case Presets</div>
+      <div class="card-body">
+        <div class="preset-row">
+          <button class="preset-btn" onclick="applyPreset(11,20)" id="preset1">
+            11 GHz
+            <span class="preset-sub">20 km link</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset(18,10)" id="preset2">
+            18 GHz
+            <span class="preset-sub">10 km link</span>
+          </button>
+          <button class="preset-btn" onclick="applyPreset(7,30)" id="preset3">
+            7 GHz
+            <span class="preset-sub">30 km link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINK PARAMETERS -->
+    <div class="card">
+      <div class="card-hdr">📡 Link Parameters</div>
+      <div class="card-body inp-stack">
+
+        <div class="fld">
+          <div class="lbl">Frequency Band</div>
+          <select id="selFreq" onchange="onFreqChange()">
+            <option value="6">6 GHz</option>
+            <option value="7">7 GHz</option>
+            <option value="8">8 GHz</option>
+            <option value="11" selected>11 GHz</option>
+            <option value="13">13 GHz</option>
+            <option value="15">15 GHz</option>
+            <option value="18">18 GHz</option>
+            <option value="23">23 GHz</option>
+            <option value="26">26 GHz</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+
+        <div class="fld" id="customFreqWrap" style="display:none">
+          <div class="lbl">Custom Frequency</div>
+          <div class="unit-row">
+            <input type="number" id="customFreq" min="1" max="100" step="0.5" value="11" oninput="calc()">
+            <div class="unit-lbl">GHz</div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <div class="lbl">Link Distance</div>
+          <div class="unit-row">
+            <input type="number" id="inpDist" min="0.5" max="200" step="0.5" value="20" oninput="calc()">
+            <div class="unit-lbl">km</div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <div class="lbl">Channel Bandwidth</div>
+          <select id="selBW" onchange="calc()">
+            <option value="14">14 MHz</option>
+            <option value="28" selected>28 MHz</option>
+            <option value="40">40 MHz</option>
+            <option value="56">56 MHz</option>
+            <option value="80">80 MHz</option>
+            <option value="112">112 MHz</option>
+            <option value="224">224 MHz</option>
+          </select>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- Antenna spacing mode -->
+        <div class="fld">
+          <div class="lbl">Antenna Spacing Mode</div>
+          <select id="selMode" onchange="onModeChange()">
+            <option value="optimal">Optimal (auto-calculate)</option>
+            <option value="custom">Custom spacing (manual)</option>
+          </select>
+        </div>
+
+        <div id="customSpacingWrap" style="display:none">
+          <div class="lbl" style="margin-bottom:8px;">Antenna Spacing (h₁ × h₂)</div>
+
+          <!-- Site A -->
+          <div class="fld" style="margin-bottom:10px;">
+            <div class="sp-slider-lbl">
+              <span style="color:var(--blue);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">📍 Site A — h₁</span>
+              <div class="unit-row" style="width:90px;">
+                <input type="number" id="inpH1" min="0.1" max="100" step="0.5" value="5" oninput="onSpacingInput('h1')" style="padding:4px 6px;font-size:11px;">
+                <div class="unit-lbl" style="font-size:10px;padding:0 5px;">m</div>
+              </div>
+            </div>
+            <div class="sp-slider-wrap">
+              <div class="sp-track" id="spTrackA">
+                <div class="sp-needle sp-needle-a" id="spNeedleA" style="left:50%"></div>
+                <div class="sp-tick-opt" id="spTickA" style="left:50%">
+                  <div class="sp-tick-label" id="spTickLabelA">h_opt</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:8.5px;font-family:var(--mono);color:var(--text3);margin-top:14px;">
+                <span>0</span><span id="spLabelA_25">—</span><span id="spLabelA_50" style="color:var(--blue)">h_opt</span><span id="spLabelA_75">—</span><span id="spLabelA_max">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Site B -->
+          <div class="fld" style="margin-bottom:6px;">
+            <div class="sp-slider-lbl">
+              <span style="color:#059669;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">📍 Site B — h₂</span>
+              <div class="unit-row" style="width:90px;">
+                <input type="number" id="inpH2" min="0.1" max="100" step="0.5" value="5" oninput="onSpacingInput('h2')" style="padding:4px 6px;font-size:11px;">
+                <div class="unit-lbl" style="font-size:10px;padding:0 5px;">m</div>
+              </div>
+            </div>
+            <div class="sp-slider-wrap">
+              <div class="sp-track" id="spTrackB">
+                <div class="sp-needle sp-needle-b" id="spNeedleB" style="left:50%"></div>
+                <div class="sp-tick-opt" id="spTickB" style="left:50%">
+                  <div class="sp-tick-label" id="spTickLabelB">h_opt</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:8.5px;font-family:var(--mono);color:var(--text3);margin-top:14px;">
+                <span>0</span><span id="spLabelB_25">—</span><span id="spLabelB_50" style="color:#059669">h_opt</span><span id="spLabelB_75">—</span><span id="spLabelB_max">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live spacing guide -->
+          <div id="spacingGuide" style="margin-top:4px;font-size:10.5px;color:var(--text3);background:var(--sl);border-radius:6px;padding:7px 10px;line-height:1.7;">
+            Usable range: <span id="sgMin" style="font-family:var(--mono);color:var(--amber)">—</span> –
+            <span id="sgMax" style="font-family:var(--mono);color:var(--amber)">—</span> m
+            &nbsp;·&nbsp; Optimal: <span id="sgOpt" style="font-family:var(--mono);color:var(--blue)">—</span> m
+            &nbsp;·&nbsp; α = <span id="sgAlpha" style="font-family:var(--mono);font-weight:600">—</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- INFO BOX -->
+    <div class="info-box">
+      <strong>α (Alpha)</strong> is the ratio of actual to optimal spacing.<br>
+      α = 1.0 → perfect MIMO orthogonality<br>
+      α ∈ [0.5, 1.5] → usable range (±0.5 tolerance)
+    </div>
+
+    <!-- ALPHA GAUGE -->
+    <div class="card">
+      <div class="card-hdr">📊 Alpha (α) Gauge</div>
+      <div class="gauge-wrap">
+        <div style="display:flex;align-items:center;gap:10px;flex-direction:column;width:100%">
+          <div class="gauge-track" id="gaugeTrack">
+            <div class="gauge-needle" id="gaugeNeedle" style="left:50%"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>0</span><span>0.5</span><span>1.0</span><span>1.5</span><span>2.0</span>
+          </div>
+          <div>
+            <span class="alpha-display" id="alphaDisplay">—</span>
+          </div>
+          <div class="alpha-status" id="alphaStatus" style="background:var(--sl);color:var(--text3)">Enter parameters</div>
+          <div style="font-size:9.5px;color:var(--text3);margin-top:-4px;">drag or click track to set α</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL: RESULTS -->
+  <div class="res-panel">
+
+    <!-- SUMMARY METRICS -->
+    <div class="summary-grid" id="summaryGrid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="metric-card">
+        <div class="metric-lbl">Optimal Spacing</div>
+        <div class="metric-val mv-blue" id="mHopt">—</div>
+        <div class="metric-unit">meters</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Alpha (α)</div>
+        <div class="metric-val" id="mAlpha">—</div>
+        <div class="metric-unit">ratio to optimal</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">SNR Improvement</div>
+        <div class="metric-val mv-teal" id="mSNR">—</div>
+        <div class="metric-unit">dB</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">MSE achieved</div>
+        <div class="metric-val" id="mMSE">—</div>
+        <div class="metric-unit">dB (lower = better)</div>
+      </div>
+      <div class="metric-card" style="grid-column:span 2;">
+        <div class="metric-lbl">Max Modulation</div>
+        <div class="metric-val mv-green" id="mMod">—</div>
+        <div class="metric-unit">at current α &amp; BW</div>
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div id="statusBox" class="status-box" style="display:none">
+      <div class="status-icon" id="statusIcon"></div>
+      <div class="status-text-wrap">
+        <div class="status-title" id="statusTitle"></div>
+        <div class="status-sub" id="statusSub"></div>
+      </div>
+    </div>
+
+    <!-- DETAIL TABLE -->
+    <div class="card">
+      <div class="sec-hdr">
+        <span class="sec-hdr-title">🔬 Calculation Detail</span>
+      </div>
+      <div id="detailWrap">
+        <div class="empty-state">
+          <div class="empty-icon">📐</div>
+          <div class="empty-title">No calculation yet</div>
+          <div class="empty-sub">Select a frequency and distance to begin.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULATION TABLE -->
+    <div class="card">
+      <div class="sec-hdr">
+        <span class="sec-hdr-title">📋 Modulation Lookup Table</span>
+        <span id="modTableBWLabel" style="font-size:10px;color:#93c5fd;margin-left:auto">— Highlighted = Max supported at current α</span>
+      </div>
+      <!-- MIMO config selector -->
+      <div style="padding:9px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-l);background:var(--sl);flex-wrap:wrap;">
+        <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">MIMO Config</span>
+        <div style="display:flex;gap:5px;">
+          <button class="mimo-cfg-btn active" id="mimoCfg10"  onclick="setMimoCfg('1+0')"  title="Single carrier — base capacity">1+0</button>
+          <button class="mimo-cfg-btn"        id="mimoCfg22"  onclick="setMimoCfg('2x2')"  title="2×2 MIMO — capacity ×2">2×2 MIMO</button>
+          <button class="mimo-cfg-btn"        id="mimoCfg44"  onclick="setMimoCfg('4x4')"  title="4×4 MIMO — capacity ×4">4×4 MIMO</button>
+        </div>
+        <span id="mimoCfgNote" style="font-size:10px;color:var(--text3);margin-left:4px;">Showing 1+0 base capacity</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="mod-table" id="modTable">
+          <thead>
+            <tr>
+              <th style="text-align:left">Modulation</th>
+              <th id="thMSE">MSE (dB)</th>
+              <th>Status</th>
+              <th id="thCap64"   class="cap-col">64B (Mbps)</th>
+              <th id="thCap128"  class="cap-col">128B</th>
+              <th id="thCap256"  class="cap-col">256B</th>
+              <th id="thCap512"  class="cap-col">512B</th>
+              <th id="thCap1024" class="cap-col">1024B</th>
+              <th id="thCap1518" class="cap-col">1518B</th>
+            </tr>
+          </thead>
+          <tbody id="modTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MAP SECTION -->
+    <div class="card">
+      <div class="sec-hdr">
+        <span class="sec-hdr-title">🗺️ Link Map</span>
+        <span style="font-size:10px;color:#93c5fd;margin-left:auto">Click map · search city · enter coordinates</span>
+      </div>
+      <div class="card-body">
+        <div class="map-instructions">
+          <strong>3 ways to set a site:</strong> (1) Click the map — first click = Site A, second = Site B &nbsp;·&nbsp;
+          (2) Search by city/country name &nbsp;·&nbsp; (3) Type decimal or DMS coordinates directly.
+        </div>
+
+        <!-- SITE BOXES -->
+        <div class="map-site-row">
+
+          <!-- SITE A -->
+          <div class="site-pin-box" id="siteABox">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div class="site-pin-lbl">📍 Site A</div>
+              <div style="display:flex;gap:4px;">
+                <button class="fmt-btn active" id="fmtA-dec" onclick="setFmt('A','dec')" title="Decimal degrees">DD</button>
+                <button class="fmt-btn" id="fmtA-dms" onclick="setFmt('A','dms')" title="Degrees Minutes Seconds">DMS</button>
+              </div>
+            </div>
+
+            <!-- City search A -->
+            <div style="position:relative;margin-bottom:6px;">
+              <input type="text" id="searchA" placeholder="🔍 Search city or country…" class="city-search"
+                oninput="onCitySearch('A')" autocomplete="off">
+              <div id="dropA" class="city-drop"></div>
+            </div>
+
+            <div class="site-pin-val" id="siteALabel">Not set</div>
+
+            <!-- Decimal input A -->
+            <div id="decA" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;">
+              <div>
+                <div class="coord-lbl">Lat (DD)</div>
+                <input type="number" id="siteALat" step="0.00001" placeholder="e.g. 37.98000" class="coord-inp" oninput="onDecInput('A')">
+              </div>
+              <div>
+                <div class="coord-lbl">Lon (DD)</div>
+                <input type="number" id="siteALon" step="0.00001" placeholder="e.g. 23.73000" class="coord-inp" oninput="onDecInput('A')">
+              </div>
+            </div>
+
+            <!-- DMS input A -->
+            <div id="dmsA" style="display:none;margin-top:5px;">
+              <div class="coord-lbl" style="margin-bottom:4px;">Latitude</div>
+              <div style="display:grid;grid-template-columns:2fr 2fr 2.5fr 1fr;gap:3px;margin-bottom:5px;">
+                <input type="number" id="aLatD" min="-90" max="90" placeholder="°" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Degrees">
+                <input type="number" id="aLatM" min="0" max="59" placeholder="′" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Minutes">
+                <input type="number" id="aLatS" min="0" max="59.999" step="0.001" placeholder="″" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Seconds">
+                <select id="aLatHem" class="coord-inp dms-inp" onchange="onDmsInput('A')" style="padding:4px 2px;">
+                  <option>N</option><option>S</option>
+                </select>
+              </div>
+              <div class="coord-lbl" style="margin-bottom:4px;">Longitude</div>
+              <div style="display:grid;grid-template-columns:2fr 2fr 2.5fr 1fr;gap:3px;">
+                <input type="number" id="aLonD" min="-180" max="180" placeholder="°" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Degrees">
+                <input type="number" id="aLonM" min="0" max="59" placeholder="′" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Minutes">
+                <input type="number" id="aLonS" min="0" max="59.999" step="0.001" placeholder="″" class="coord-inp dms-inp" oninput="onDmsInput('A')" title="Seconds">
+                <select id="aLonHem" class="coord-inp dms-inp" onchange="onDmsInput('A')" style="padding:4px 2px;">
+                  <option>E</option><option>W</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- SITE B -->
+          <div class="site-pin-box" id="siteBBox">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div class="site-pin-lbl">📍 Site B</div>
+              <div style="display:flex;gap:4px;">
+                <button class="fmt-btn active" id="fmtB-dec" onclick="setFmt('B','dec')" title="Decimal degrees">DD</button>
+                <button class="fmt-btn" id="fmtB-dms" onclick="setFmt('B','dms')" title="Degrees Minutes Seconds">DMS</button>
+              </div>
+            </div>
+
+            <!-- City search B -->
+            <div style="position:relative;margin-bottom:6px;">
+              <input type="text" id="searchB" placeholder="🔍 Search city or country…" class="city-search"
+                oninput="onCitySearch('B')" autocomplete="off">
+              <div id="dropB" class="city-drop"></div>
+            </div>
+
+            <div class="site-pin-val" id="siteBLabel">Not set</div>
+
+            <!-- Decimal input B -->
+            <div id="decB" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;">
+              <div>
+                <div class="coord-lbl">Lat (DD)</div>
+                <input type="number" id="siteBLat" step="0.00001" placeholder="e.g. 38.10000" class="coord-inp" oninput="onDecInput('B')">
+              </div>
+              <div>
+                <div class="coord-lbl">Lon (DD)</div>
+                <input type="number" id="siteBLon" step="0.00001" placeholder="e.g. 23.80000" class="coord-inp" oninput="onDecInput('B')">
+              </div>
+            </div>
+
+            <!-- DMS input B -->
+            <div id="dmsB" style="display:none;margin-top:5px;">
+              <div class="coord-lbl" style="margin-bottom:4px;">Latitude</div>
+              <div style="display:grid;grid-template-columns:2fr 2fr 2.5fr 1fr;gap:3px;margin-bottom:5px;">
+                <input type="number" id="bLatD" min="-90" max="90" placeholder="°" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Degrees">
+                <input type="number" id="bLatM" min="0" max="59" placeholder="′" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Minutes">
+                <input type="number" id="bLatS" min="0" max="59.999" step="0.001" placeholder="″" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Seconds">
+                <select id="bLatHem" class="coord-inp dms-inp" onchange="onDmsInput('B')" style="padding:4px 2px;">
+                  <option>N</option><option>S</option>
+                </select>
+              </div>
+              <div class="coord-lbl" style="margin-bottom:4px;">Longitude</div>
+              <div style="display:grid;grid-template-columns:2fr 2fr 2.5fr 1fr;gap:3px;">
+                <input type="number" id="bLonD" min="-180" max="180" placeholder="°" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Degrees">
+                <input type="number" id="bLonM" min="0" max="59" placeholder="′" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Minutes">
+                <input type="number" id="bLonS" min="0" max="59.999" step="0.001" placeholder="″" class="coord-inp dms-inp" oninput="onDmsInput('B')" title="Seconds">
+                <select id="bLonHem" class="coord-inp dms-inp" onchange="onDmsInput('B')" style="padding:4px 2px;">
+                  <option>E</option><option>W</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /map-site-row -->
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <div class="map-layer-row">
+            <button class="layer-btn active" id="layerOsm" onclick="switchLayer('osm')">🌍 Street</button>
+            <button class="layer-btn" id="layerSat" onclick="switchLayer('satellite')">🛰 Satellite</button>
+            <button class="layer-btn" id="layerTopo" onclick="switchLayer('terrain')">⛰ Terrain</button>
+          </div>
+          <button class="map-clear-btn" onclick="clearSites()">✕ Clear Sites</button>
+        </div>
+
+        <div id="mimoMap"></div>
+
+        <div id="mapDistInfo" style="margin-top:8px;font-size:11.5px;color:var(--text3);text-align:center;display:none">
+          📏 Link distance from map: <strong id="mapDistVal" style="font-family:var(--mono);color:var(--blue)"></strong> km
+          — <button onclick="useMapDist()" style="border:1px solid var(--blue);background:var(--blue-l);color:var(--blue);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:11px;font-weight:600">Use this distance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TERRAIN PROFILER -->
+    <div class="card">
+      <div class="sec-hdr">
+        <span class="sec-hdr-title">⛰️ Terrain Profile &amp; Line of Sight</span>
+      </div>
+      <div class="card-body">
+
+        <!-- Antenna height inputs for profile -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div class="coord-lbl" style="margin-bottom:3px;">Site A — Antenna Height AGL</div>
+            <div class="unit-row">
+              <input type="number" id="antHgtA" min="0" max="200" step="0.5" value="3" class="coord-inp" oninput="updateTerrainProfile()">
+              <div class="unit-lbl">m</div>
+            </div>
+          </div>
+          <div>
+            <div class="coord-lbl" style="margin-bottom:3px;">Site B — Antenna Height AGL</div>
+            <div class="unit-row">
+              <input type="number" id="antHgtB" min="0" max="200" step="0.5" value="3" class="coord-inp" oninput="updateTerrainProfile()">
+              <div class="unit-lbl">m</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="terrainProfileCard" style="display:none;background:var(--sl);border:1px solid var(--border-l);border-radius:8px;overflow:hidden;">
+          <!-- Chart inner header — mirrors V4c layout -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border-l);">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span id="losStatus" style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px;background:var(--sl);color:var(--text3)">—</span>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;cursor:pointer;">
+                <input type="checkbox" id="showFresnel" checked onchange="if(terrainChartObj)redrawTerrainOverlays()">
+                <span style="color:var(--text2)">Fresnel 60%</span>
+              </label>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="optimiseAntennaHeights()"
+                style="padding:4px 11px;background:#059669;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--sans)">
+                ▲ Optimise Heights
+              </button>
+              <button onclick="fetchTerrainProfile()" id="terrainBtn"
+                style="padding:4px 11px;background:var(--navy);color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--sans)">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+          <div style="padding:10px;">
+            <div style="position:relative;height:240px;width:100%;">
+              <canvas id="terrainChartCanvas"></canvas>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:6px;font-size:10px;color:var(--text3);flex-wrap:wrap;align-items:center;">
+              <span>▬ Terrain</span>
+              <span style="color:#3b82f6">╌╌ LOS path</span>
+              <span style="color:#16a34a">▬ Fresnel 60%</span>
+              <span style="color:#ef4444">▲ Obstruction</span>
+              <span id="terrainNote" style="margin-left:auto;font-size:10px;"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="terrainStatus" style="font-size:11.5px;color:var(--text3);margin-top:6px;">Set both sites on the map — profile loads automatically.</div>
+
+        <!-- Elevation stats -->
+        <div id="terrainStats" style="display:none;margin-top:10px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11.5px;">
+            <div style="background:var(--sl);border-radius:7px;padding:8px 10px;">
+              <div class="coord-lbl" style="margin-bottom:3px;">Site A Elev.</div>
+              <div id="tElA" style="font-family:var(--mono);font-weight:600;color:var(--blue)">—</div>
+            </div>
+            <div style="background:var(--sl);border-radius:7px;padding:8px 10px;">
+              <div class="coord-lbl" style="margin-bottom:3px;">Site B Elev.</div>
+              <div id="tElB" style="font-family:var(--mono);font-weight:600;color:var(--green)">—</div>
+            </div>
+            <div style="background:var(--sl);border-radius:7px;padding:8px 10px;">
+              <div class="coord-lbl" style="margin-bottom:3px;">Max Elevation</div>
+              <div id="tMaxEl" style="font-family:var(--mono);font-weight:600;color:var(--text)">—</div>
+            </div>
+            <div style="background:var(--sl);border-radius:7px;padding:8px 10px;">
+              <div class="coord-lbl" style="margin-bottom:3px;">Min Elevation</div>
+              <div id="tMinEl" style="font-family:var(--mono);font-weight:600;color:var(--text)">—</div>
+            </div>
+          </div>
+          <div style="margin-top:6px;font-size:10px;color:var(--text3);">
+            ⚠ SRTM 90m data via <a href="https://opentopodata.org" target="_blank" style="color:var(--blue)">opentopodata.org</a> (fallback: open-elevation.com). For LOS planning — verify with professional survey.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── MODULATION TABLE — keyed by channel BW (MHz) ──
+// Order: highest modulation first (ceiling lookup)
+// MSE values per BW per modulation (from Ceragon IP-20C spec)
+const MOD_DATA = {
+  14: [
+    { name:'4KQAM',   mse:-40.6 },
+    { name:'2KQAM',   mse:-36.8 },
+    { name:'1KHQAM',  mse:-33.3 },
+    { name:'1KLQAM',  mse:-32.7 },
+    { name:'512QAM',  mse:-29.8 },
+    { name:'256QAM',  mse:-27.0 },
+    { name:'128QAM',  mse:-23.8 },
+    { name:'64QAM',   mse:-20.9 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.5 },
+    { name:'8QAM',    mse:-12.1 },
+    { name:'4QAM',    mse: -7.6 },
+    { name:'BPSK',    mse: -5.5 },
+  ],
+  28: [
+    { name:'4KQAM',   mse:-39.2 },
+    { name:'2KQAM',   mse:-35.7 },
+    { name:'1KHQAM',  mse:-33.2 },
+    { name:'1KLQAM',  mse:-32.3 },
+    { name:'512QAM',  mse:-29.4 },
+    { name:'256QAM',  mse:-26.8 },
+    { name:'128QAM',  mse:-23.8 },
+    { name:'64QAM',   mse:-20.7 },
+    { name:'32QAM',   mse:-17.6 },
+    { name:'16QAM',   mse:-14.1 },
+    { name:'8QAM',    mse:-11.2 },
+    { name:'4QAM',    mse: -7.3 },
+    { name:'BPSK',    mse: -4.5 },
+  ],
+  40: [
+    { name:'4KQAM',   mse:-38.0 },
+    { name:'2KQAM',   mse:-35.2 },
+    { name:'1KHQAM',  mse:-32.8 },
+    { name:'1KLQAM',  mse:-32.0 },
+    { name:'512QAM',  mse:-28.7 },
+    { name:'256QAM',  mse:-26.3 },
+    { name:'128QAM',  mse:-23.8 },
+    { name:'64QAM',   mse:-20.9 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.4 },
+    { name:'8QAM',    mse:-12.1 },
+    { name:'4QAM',    mse: -7.7 },
+    { name:'BPSK',    mse: -5.4 },
+  ],
+  56: [
+    { name:'4KQAM',   mse:-39.2 },
+    { name:'2KQAM',   mse:-35.5 },
+    { name:'1KHQAM',  mse:-33.7 },
+    { name:'1KLQAM',  mse:-32.6 },
+    { name:'512QAM',  mse:-29.1 },
+    { name:'256QAM',  mse:-26.8 },
+    { name:'128QAM',  mse:-23.6 },
+    { name:'64QAM',   mse:-20.7 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.2 },
+    { name:'8QAM',    mse:-11.2 },
+    { name:'4QAM',    mse: -7.3 },
+    { name:'BPSK',    mse: -4.5 },
+  ],
+  80: [
+    { name:'4KQAM',   mse:-39.2 },
+    { name:'2KQAM',   mse:-35.5 },
+    { name:'1KHQAM',  mse:-33.7 },
+    { name:'1KLQAM',  mse:-32.6 },
+    { name:'512QAM',  mse:-29.1 },
+    { name:'256QAM',  mse:-26.8 },
+    { name:'128QAM',  mse:-23.6 },
+    { name:'64QAM',   mse:-20.7 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.2 },
+    { name:'8QAM',    mse:-11.2 },
+    { name:'4QAM',    mse: -7.3 },
+    { name:'BPSK',    mse: -4.5 },
+  ],
+  112: [
+    { name:'4KQAM',   mse:-37.9 },
+    { name:'2KQAM',   mse:-35.1 },
+    { name:'1KHQAM',  mse:-32.6 },
+    { name:'1KLQAM',  mse:-31.9 },
+    { name:'512QAM',  mse:-28.9 },
+    { name:'256QAM',  mse:-26.7 },
+    { name:'128QAM',  mse:-23.7 },
+    { name:'64QAM',   mse:-20.9 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.4 },
+    { name:'8QAM',    mse:-12.2 },
+    { name:'4QAM',    mse: -7.7 },
+    { name:'BPSK',    mse: -5.6 },
+  ],
+  224: [
+    { name:'4KQAM',   mse:-38.7 },
+    { name:'2KQAM',   mse:-35.7 },
+    { name:'1KQAM',   mse:-32.6 },
+    { name:'512QAM',  mse:-29.5 },
+    { name:'256QAM',  mse:-26.8 },
+    { name:'128QAM',  mse:-23.8 },
+    { name:'64QAM',   mse:-21.2 },
+    { name:'32QAM',   mse:-17.8 },
+    { name:'16QAM',   mse:-14.4 },
+    { name:'8QAM',    mse:-12.2 },
+    { name:'4QAM',    mse: -7.7 },
+    { name:'BPSK',    mse: -5.4 },
+  ],
+};
+
+// ── MIMO CONFIGURATION ──
+// 1+0 = base, 2x2 = ×2, 4x4 = ×4
+let mimoConfig = '1+0'; // '1+0' | '2x2' | '4x4'
+function getMimoMult() { return mimoConfig === '4x4' ? 4 : mimoConfig === '2x2' ? 2 : 1; }
+
+function setMimoCfg(cfg) {
+  mimoConfig = cfg;
+  ['10','22','44'].forEach(id => document.getElementById('mimoCfg'+id)?.classList.remove('active'));
+  const idMap = {'1+0':'10','2x2':'22','4x4':'44'};
+  document.getElementById('mimoCfg'+idMap[cfg])?.classList.add('active');
+  const noteEl = document.getElementById('mimoCfgNote');
+  if (noteEl) {
+    const mult = getMimoMult();
+    noteEl.textContent = cfg === '1+0'
+      ? 'Showing 1+0 base capacity'
+      : `Showing ${cfg} MIMO capacity (base ×${mult})`;
+  }
+  // Re-render table with existing result
+  if (lastResult) {
+    renderModTable(lastResult.alphaOk ? lastResult.maxMod : null, lastResult.alphaOk);
+  } else {
+    renderModTable(null, undefined);
+  }
+}
+
+// ── CAPACITY DATA (1+0 base) ──
+// Keys: BW (MHz). Each entry: { mod, cap: [64B, 128B, 256B, 512B, 1024B, 1518B] }
+const CAPACITY_DATA = {
+  14: [
+    { mod:'4KQAM',  cap:[131.58, 0,      0,      0,      0,      0      ] },
+    { mod:'2KQAM',  cap:[116.48, 138.8,  126.0,  119.3,  115.9,  114.1  ] },
+    { mod:'1KHQAM', cap:[112.13, 133.5,  121.1,  114.7,  111.4,  109.7  ] },
+    { mod:'1KLQAM', cap:[105.73, 125.5,  114.0,  107.9,  104.8,  103.2  ] },
+    { mod:'512QAM', cap:[100.10, 118.6,  107.6,  101.9,  99.0,   97.5   ] },
+    { mod:'256QAM', cap:[90.62,  106.9,  97.0,   91.9,   89.2,   87.9   ] },
+    { mod:'128QAM', cap:[79.62,  93.3,   84.7,   80.2,   77.9,   76.7   ] },
+    { mod:'64QAM',  cap:[66.05,  76.5,   69.5,   65.8,   63.9,   62.9   ] },
+    { mod:'32QAM',  cap:[54.02,  61.7,   56.0,   53.0,   51.5,   50.7   ] },
+    { mod:'16QAM',  cap:[41.22,  45.9,   41.6,   39.4,   38.3,   37.7   ] },
+    { mod:'8QAM',   cap:[30.21,  32.3,   29.3,   27.7,   26.9,   26.5   ] },
+    { mod:'4QAM',   cap:[20.48,  20.2,   18.4,   17.4,   16.9,   16.6   ] },
+    { mod:'BPSK',   cap:[10.5,   7.9,    7.2,    6.8,    6.6,    6.5    ] },
+  ],
+  28: [
+    { mod:'4KQAM',  cap:[262.91, 319.7,  290.2,  274.7,  266.8,  262.8  ] },
+    { mod:'2KQAM',  cap:[243.20, 295.4,  268.1,  253.8,  246.5,  242.8  ] },
+    { mod:'1KHQAM', cap:[226.82, 275.1,  249.7,  236.4,  229.6,  226.2  ] },
+    { mod:'1KLQAM', cap:[213.76, 259.0,  235.1,  222.6,  216.2,  212.9  ] },
+    { mod:'512QAM', cap:[201.22, 243.5,  221.0,  209.3,  203.2,  200.2  ] },
+    { mod:'256QAM', cap:[182.27, 220.1,  199.8,  189.1,  183.7,  180.9  ] },
+    { mod:'128QAM', cap:[160.26, 192.9,  175.1,  165.8,  161.0,  158.6  ] },
+    { mod:'64QAM',  cap:[133.38, 159.7,  145.0,  137.2,  133.3,  131.3  ] },
+    { mod:'32QAM',  cap:[108.54, 129.0,  117.1,  110.9,  107.7,  106.1  ] },
+    { mod:'16QAM',  cap:[82.69,  97.1,   88.1,   83.4,   81.0,   79.8   ] },
+    { mod:'8QAM',   cap:[60.93,  70.2,   63.7,   60.3,   58.6,   57.7   ] },
+    { mod:'4QAM',   cap:[41.22,  45.9,   41.6,   39.4,   38.3,   37.7   ] },
+    { mod:'BPSK',   cap:[20.74,  20.6,   18.7,   17.7,   17.2,   16.9   ] },
+  ],
+  40: [
+    { mod:'4KQAM',  cap:[366.08, 451.3,  409.6,  387.8,  376.6,  371.0  ] },
+    { mod:'2KQAM',  cap:[349.44, 426.6,  387.2,  366.6,  356.1,  350.7  ] },
+    { mod:'1KHQAM', cap:[323.33, 394.3,  357.9,  338.9,  329.1,  324.2  ] },
+    { mod:'1KLQAM', cap:[304.38, 370.9,  336.7,  318.8,  309.6,  305.0  ] },
+    { mod:'512QAM', cap:[268.54, 326.7,  296.5,  280.7,  272.6,  268.6  ] },
+    { mod:'256QAM', cap:[245.25, 297.9,  270.4,  256.0,  248.6,  244.9  ] },
+    { mod:'128QAM', cap:[228.35, 277.0,  251.4,  238.1,  231.2,  227.7  ] },
+    { mod:'64QAM',  cap:[188.93, 228.3,  207.2,  196.2,  190.6,  187.7  ] },
+    { mod:'32QAM',  cap:[154.11, 185.3,  168.2,  159.2,  154.7,  152.4  ] },
+    { mod:'16QAM',  cap:[117.25, 139.8,  126.9,  120.1,  116.7,  114.9  ] },
+    { mod:'8QAM',   cap:[86.53,  101.8,  92.4,   87.5,   85.0,   83.7   ] },
+    { mod:'4QAM',   cap:[58.37,  67.0,   60.9,   57.6,   56.0,   55.1   ] },
+    { mod:'BPSK',   cap:[29.44,  31.3,   28.4,   26.9,   26.1,   25.7   ] },
+  ],
+  56: [
+    { mod:'4KQAM',  cap:[518.66, 635.6,  576.9,  546.2,  530.5,  522.6  ] },
+    { mod:'2KQAM',  cap:[489.47, 599.6,  544.2,  515.2,  500.4,  492.9  ] },
+    { mod:'1KHQAM', cap:[464.90, 569.2,  516.7,  489.2,  475.1,  468.0  ] },
+    { mod:'1KLQAM', cap:[438.02, 536.0,  486.5,  460.6,  447.4,  440.7  ] },
+    { mod:'512QAM', cap:[402.94, 492.7,  447.2,  423.4,  411.2,  405.1  ] },
+    { mod:'256QAM', cap:[371.20, 453.5,  411.6,  389.7,  378.5,  372.8  ] },
+    { mod:'128QAM', cap:[324.86, 396.2,  359.6,  340.5,  330.7,  325.8  ] },
+    { mod:'64QAM',  cap:[268.80, 327.0,  296.8,  281.0,  272.9,  268.8  ] },
+    { mod:'32QAM',  cap:[219.14, 265.6,  241.1,  228.3,  221.7,  218.4  ] },
+    { mod:'16QAM',  cap:[166.91, 201.1,  182.6,  172.8,  167.9,  165.4  ] },
+    { mod:'8QAM',   cap:[122.88, 146.7,  133.2,  126.1,  122.5,  120.6  ] },
+    { mod:'4QAM',   cap:[82.94,  97.4,   88.4,   83.7,   81.3,   80.1   ] },
+    { mod:'BPSK',   cap:[41.47,  46.2,   41.9,   39.7,   38.5,   38.0   ] },
+  ],
+  80: [
+    { mod:'4KQAM',  cap:[715.16, 878.5,  797.4,  754.9,  733.2,  722.2  ] },
+    { mod:'2KQAM',  cap:[679.86, 834.9,  757.8,  717.4,  696.8,  686.4  ] },
+    { mod:'1KHQAM', cap:[642.45, 788.7,  715.9,  677.8,  658.3,  648.4  ] },
+    { mod:'1KLQAM', cap:[603.87, 740.9,  672.5,  636.7,  618.4,  609.1  ] },
+    { mod:'512QAM', cap:[562.56, 690.0,  626.3,  593.0,  575.9,  567.3  ] },
+    { mod:'256QAM', cap:[512.46, 628.0,  570.0,  539.7,  524.2,  516.3  ] },
+    { mod:'128QAM', cap:[446.74, 547.1,  496.6,  470.1,  456.6,  449.8  ] },
+    { mod:'64QAM',  cap:[372.82, 455.7,  413.6,  391.6,  380.3,  374.6  ] },
+    { mod:'32QAM',  cap:[304.47, 371.3,  337.0,  319.0,  309.9,  305.2  ] },
+    { mod:'16QAM',  cap:[230.24, 279.6,  253.7,  240.2,  233.3,  229.8  ] },
+    { mod:'8QAM',   cap:[164.49, 198.3,  180.0,  170.4,  165.5,  163.0  ] },
+    { mod:'4QAM',   cap:[116.26, 138.8,  126.0,  119.3,  115.9,  114.1  ] },
+    { mod:'BPSK',   cap:[58.06,  66.7,   60.6,   57.3,   55.7,   54.9   ] },
+  ],
+  112: [
+    { mod:'4KQAM',  cap:[1035.01,1273.5, 1155.9, 1094.4, 1062.9, 1047.0 ] },
+    { mod:'2KQAM',  cap:[1000.45,1230.8, 1117.1, 1057.7, 1027.2, 1011.9 ] },
+    { mod:'1KHQAM', cap:[927.74, 1141.0, 1035.6, 980.5,  952.3,  938.0  ] },
+    { mod:'1KLQAM', cap:[873.98, 1074.6, 975.3,  923.4,  896.9,  883.4  ] },
+    { mod:'512QAM', cap:[805.89, 990.4,  899.0,  851.1,  826.7,  814.3  ] },
+    { mod:'256QAM', cap:[742.40, 912.0,  827.8,  783.7,  761.2,  749.8  ] },
+    { mod:'128QAM', cap:[649.47, 797.2,  723.6,  685.1,  665.4,  655.4  ] },
+    { mod:'64QAM',  cap:[537.60, 659.0,  598.2,  566.3,  550.0,  541.8  ] },
+    { mod:'32QAM',  cap:[438.27, 536.3,  486.8,  460.9,  447.6,  440.9  ] },
+    { mod:'16QAM',  cap:[333.57, 407.0,  369.4,  349.7,  339.7,  334.6  ] },
+    { mod:'8QAM',   cap:[245.76, 298.5,  271.0,  256.5,  249.2,  245.4  ] },
+    { mod:'4QAM',   cap:[165.89, 199.9,  181.4,  171.7,  166.8,  164.3  ] },
+    { mod:'BPSK',   cap:[82.94,  97.4,   88.4,   83.7,   81.3,   80.1   ] },
+  ],
+};
+
+function getCapRow(bw, modName) {
+  const rows = CAPACITY_DATA[bw];
+  if (!rows) return null;
+  return rows.find(r => r.mod === modName) || null;
+}
+
+function fmtCap(val, mult) {
+  if (val === 0 || val === null || val === undefined) return '<span style="color:var(--text3)">N/A</span>';
+  const v = val * mult;
+  return v >= 1000 ? (v/1000).toFixed(2)+' G' : v.toFixed(1);
+}
+
+
+function getActiveBW() {
+  return parseInt(document.getElementById('selBW').value) || 28;
+}
+
+function getModTable() {
+  return MOD_DATA[getActiveBW()] || MOD_DATA[28];
+}
+
+// ── STATE ──
+let lastResult = null;
+let mapClickStep = 0; // 0=set A, 1=set B, 2=done
+let siteA = null, siteB = null;
+let markerA = null, markerB = null;
+let linkLine = null;
+let mimoMap = null;
+let currentLayer = 'osm';
+let layers = {};
+
+// ── MAP INIT ──
+function initMap() {
+  mimoMap = L.map('mimoMap', { zoomControl: true }).setView([37.98, 23.73], 6);
+
+  layers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19
+  });
+  layers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri', maxZoom: 19
+  });
+  layers.terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenTopoMap', maxZoom: 17
+  });
+
+  layers.osm.addTo(mimoMap);
+  mimoMap.on('click', onMapClick);
+}
+
+function switchLayer(name) {
+  Object.values(layers).forEach(l => { if (mimoMap.hasLayer(l)) mimoMap.removeLayer(l); });
+  layers[name].addTo(mimoMap);
+  currentLayer = name;
+  ['Osm','Sat','Topo'].forEach(n => document.getElementById('layer'+n)?.classList.remove('active'));
+  const map = {osm:'Osm', satellite:'Sat', terrain:'Topo'};
+  document.getElementById('layer'+map[name])?.classList.add('active');
+}
+
+// Custom icons
+const iconA = L.divIcon({ className:'', html:`<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#1d6fc4;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-weight:700;font-size:11px">A</span></div>`, iconSize:[28,28], iconAnchor:[14,28] });
+const iconB = L.divIcon({ className:'', html:`<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#059669;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:#fff;font-weight:700;font-size:11px">B</span></div>`, iconSize:[28,28], iconAnchor:[14,28] });
+
+function onMapClick(e) {
+  const {lat, lng} = e.latlng;
+  if (!siteA || mapClickStep === 0) {
+    setSite('A', lat, lng, null);
+    mapClickStep = 1;
+  } else {
+    setSite('B', lat, lng, null);
+    mapClickStep = 0;
+    updateLinkLine();
+    updateMapDist();
+  }
+}
+
+// ── SITE SETTER (central) ──
+function setSite(which, lat, lng, label) {
+  const isA = which === 'A';
+  if (isA) {
+    siteA = {lat, lng};
+    if (markerA) mimoMap.removeLayer(markerA);
+    markerA = L.marker([lat,lng], {icon:iconA, draggable:true}).addTo(mimoMap);
+    markerA.bindPopup(`<b>Site A</b>${label?'<br>'+label:''}<br>${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    markerA.on('drag', e => onMarkerDrag('A', e.latlng));
+    markerA.on('dragend', e => onMarkerDragEnd('A', e.target.getLatLng()));
+    document.getElementById('siteALabel').textContent = label || `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+    document.getElementById('siteALat').value = lat.toFixed(6);
+    document.getElementById('siteALon').value = lng.toFixed(6);
+    fillDms('A', lat, lng);
+  } else {
+    siteB = {lat, lng};
+    if (markerB) mimoMap.removeLayer(markerB);
+    markerB = L.marker([lat,lng], {icon:iconB, draggable:true}).addTo(mimoMap);
+    markerB.bindPopup(`<b>Site B</b>${label?'<br>'+label:''}<br>${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    markerB.on('drag', e => onMarkerDrag('B', e.latlng));
+    markerB.on('dragend', e => onMarkerDragEnd('B', e.target.getLatLng()));
+    document.getElementById('siteBLabel').textContent = label || `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+    document.getElementById('siteBLat').value = lat.toFixed(6);
+    document.getElementById('siteBLon').value = lng.toFixed(6);
+    fillDms('B', lat, lng);
+  }
+  if (siteA && siteB) {
+    updateLinkLine();
+    updateMapDist();
+    mimoMap.fitBounds([[siteA.lat,siteA.lng],[siteB.lat,siteB.lng]], {padding:[40,40]});
+    // Auto-fetch terrain profile
+    clearTimeout(window._terrainTimer);
+    window._terrainTimer = setTimeout(fetchTerrainProfile, 800);
+  }
+}
+
+function onMarkerDrag(which, latlng) {
+  // Live update line and label while dragging
+  const {lat, lng} = latlng;
+  if (which === 'A') siteA = {lat, lng};
+  else siteB = {lat, lng};
+  if (siteA && siteB) {
+    updateLinkLine();
+    // update dist label only (don't recalc full page on every pixel)
+    const d = haversineDist(siteA, siteB);
+    document.getElementById('mapDistVal').textContent = d.toFixed(2);
+    document.getElementById('mapDistInfo').style.display = 'block';
+  }
+}
+
+function onMarkerDragEnd(which, latlng) {
+  const {lat, lng} = latlng;
+  if (which === 'A') {
+    siteA = {lat, lng};
+    document.getElementById('siteALat').value = lat.toFixed(6);
+    document.getElementById('siteALon').value = lng.toFixed(6);
+    document.getElementById('siteALabel').textContent = `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+    fillDms('A', lat, lng);
+  } else {
+    siteB = {lat, lng};
+    document.getElementById('siteBLat').value = lat.toFixed(6);
+    document.getElementById('siteBLon').value = lng.toFixed(6);
+    document.getElementById('siteBLabel').textContent = `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+    fillDms('B', lat, lng);
+  }
+  updateLinkLine();
+  updateMapDist(); // triggers full recalc
+  // Auto-refetch terrain after drag settles
+  document.getElementById('terrainStatus').textContent = '⚠ Sites moved — refreshing profile…';
+  document.getElementById('terrainStatus').style.color = 'var(--amber)';
+  clearTimeout(window._terrainTimer);
+  window._terrainTimer = setTimeout(fetchTerrainProfile, 1000);
+}
+
+// ── DECIMAL INPUT ──
+function onDecInput(which) {
+  const lat = parseFloat(document.getElementById('site'+which+'Lat').value);
+  const lng = parseFloat(document.getElementById('site'+which+'Lon').value);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    setSite(which, lat, lng, null);
+  }
+}
+
+// ── DMS ↔ DECIMAL HELPERS ──
+function dmsToDecLat(d, m, s, hem) {
+  const sign = (hem === 'S') ? -1 : 1;
+  return sign * (Math.abs(parseFloat(d)||0) + (parseFloat(m)||0)/60 + (parseFloat(s)||0)/3600);
+}
+function dmsToDecLon(d, m, s, hem) {
+  const sign = (hem === 'W') ? -1 : 1;
+  return sign * (Math.abs(parseFloat(d)||0) + (parseFloat(m)||0)/60 + (parseFloat(s)||0)/3600);
+}
+function decToDms(dec) {
+  const abs = Math.abs(dec);
+  const d = Math.floor(abs);
+  const mFull = (abs - d) * 60;
+  const m = Math.floor(mFull);
+  const s = (mFull - m) * 60;
+  return {d, m, s: parseFloat(s.toFixed(3))};
+}
+function fillDms(which, lat, lng) {
+  const p = which === 'A' ? 'a' : 'b';
+  const ld = decToDms(lat), lod = decToDms(lng);
+  document.getElementById(p+'LatD').value = ld.d;
+  document.getElementById(p+'LatM').value = ld.m;
+  document.getElementById(p+'LatS').value = ld.s;
+  document.getElementById(p+'LatHem').value = lat >= 0 ? 'N' : 'S';
+  document.getElementById(p+'LonD').value = lod.d;
+  document.getElementById(p+'LonM').value = lod.m;
+  document.getElementById(p+'LonS').value = lod.s;
+  document.getElementById(p+'LonHem').value = lng >= 0 ? 'E' : 'W';
+}
+
+function onDmsInput(which) {
+  const p = which === 'A' ? 'a' : 'b';
+  const lat = dmsToDecLat(
+    document.getElementById(p+'LatD').value,
+    document.getElementById(p+'LatM').value,
+    document.getElementById(p+'LatS').value,
+    document.getElementById(p+'LatHem').value
+  );
+  const lng = dmsToDecLon(
+    document.getElementById(p+'LonD').value,
+    document.getElementById(p+'LonM').value,
+    document.getElementById(p+'LonS').value,
+    document.getElementById(p+'LonHem').value
+  );
+  if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+    // update decimal fields silently
+    document.getElementById('site'+which+'Lat').value = lat.toFixed(6);
+    document.getElementById('site'+which+'Lon').value = lng.toFixed(6);
+    setSite(which, lat, lng, null);
+  }
+}
+
+// ── FORMAT TOGGLE ──
+const fmtState = {A:'dec', B:'dec'};
+function setFmt(which, fmt) {
+  fmtState[which] = fmt;
+  const w = which.toLowerCase();
+  document.getElementById('dec'+which).style.display = fmt === 'dec' ? 'grid' : 'none';
+  document.getElementById('dms'+which).style.display = fmt === 'dms' ? 'block' : 'none';
+  document.getElementById('fmt'+which+'-dec').classList.toggle('active', fmt === 'dec');
+  document.getElementById('fmt'+which+'-dms').classList.toggle('active', fmt === 'dms');
+}
+
+// ── CITY SEARCH (Nominatim) ──
+const searchTimers = {A:null, B:null};
+
+async function onCitySearch(which) {
+  const q = document.getElementById('search'+which).value.trim();
+  const drop = document.getElementById('drop'+which);
+  clearTimeout(searchTimers[which]);
+  if (q.length < 2) { drop.classList.remove('open'); return; }
+  searchTimers[which] = setTimeout(async () => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`;
+      const res = await fetch(url, {headers:{'Accept-Language':'en'}});
+      const data = await res.json();
+      drop.innerHTML = '';
+      if (!data.length) {
+        drop.innerHTML = '<div class="city-opt" style="color:var(--text3);cursor:default">No results found</div>';
+        drop.classList.add('open');
+        return;
+      }
+      data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'city-opt';
+        const name = item.display_name.split(',').slice(0,2).join(', ');
+        const country = item.address?.country || '';
+        div.innerHTML = `<span class="city-opt-name">${name}</span><span class="city-opt-country">${country}</span>`;
+        div.onclick = () => {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          const label = item.display_name.split(',').slice(0,2).join(', ');
+          setSite(which, lat, lng, label);
+          document.getElementById('search'+which).value = label;
+          drop.classList.remove('open');
+          mimoMap.setView([lat,lng], 10);
+        };
+        drop.appendChild(div);
+      });
+      drop.classList.add('open');
+    } catch(e) { drop.classList.remove('open'); }
+  }, 350);
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  ['A','B'].forEach(w => {
+    if (!document.getElementById('search'+w)?.contains(e.target) &&
+        !document.getElementById('drop'+w)?.contains(e.target)) {
+      document.getElementById('drop'+w)?.classList.remove('open');
+    }
+  });
+});
+
+// Keep old alias so nothing else breaks
+function onCoordInput() { onDecInput('A'); onDecInput('B'); }
+
+// ── LINK LINE + DISTANCE LABEL ──
+let distLabel = null;
+
+function updateLinkLine() {
+  if (!siteA || !siteB) return;
+  if (linkLine) mimoMap.removeLayer(linkLine);
+  if (distLabel) mimoMap.removeLayer(distLabel);
+
+  linkLine = L.polyline([[siteA.lat,siteA.lng],[siteB.lat,siteB.lng]], {
+    color:'#1d6fc4', weight:3, opacity:.9, dashArray:'10,5'
+  }).addTo(mimoMap);
+
+  // Midpoint tooltip label — permanent, visible, styled
+  const midLat = (siteA.lat + siteB.lat) / 2;
+  const midLng = (siteA.lng + siteB.lng) / 2;
+  const d = haversineDist(siteA, siteB);
+  const hopt = calcHopt(d);
+
+  distLabel = L.marker([midLat, midLng], {
+    icon: L.divIcon({
+      className: 'link-dist-label',
+      html: `<div>${d.toFixed(2)} km &nbsp;·&nbsp; h<sub>opt</sub> ${hopt.toFixed(2)} m</div>`,
+      iconSize: null,
+      iconAnchor: null
+    }),
+    interactive: false,
+    zIndexOffset: 600
+  }).addTo(mimoMap);
+}
+
+function calcHopt(D_km) {
+  const f = getFreq();
+  if (!f || !D_km) return 0;
+  return Math.sqrt(D_km * 150 / f);
+}
+
+function haversineDist(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI/180;
+  const dLon = (b.lng - a.lng) * Math.PI/180;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+function updateMapDist() {
+  if (!siteA || !siteB) return;
+  const d = haversineDist(siteA, siteB);
+  document.getElementById('mapDistVal').textContent = d.toFixed(2);
+  document.getElementById('mapDistInfo').style.display = 'block';
+  // Auto-update distance input + recalc on every drag
+  document.getElementById('inpDist').value = d.toFixed(3);
+  calc();
+}
+
+function useMapDist() {
+  if (!siteA || !siteB) return;
+  const d = haversineDist(siteA, siteB);
+  document.getElementById('inpDist').value = d.toFixed(2);
+  calc();
+}
+
+function clearSites() {
+  if (markerA) { mimoMap.removeLayer(markerA); markerA = null; }
+  if (markerB) { mimoMap.removeLayer(markerB); markerB = null; }
+  if (linkLine) { mimoMap.removeLayer(linkLine); linkLine = null; }
+  if (distLabel) { mimoMap.removeLayer(distLabel); distLabel = null; }
+  siteA = null; siteB = null; mapClickStep = 0;
+  ['siteALat','siteALon','siteBLat','siteBLon'].forEach(id => document.getElementById(id).value = '');
+  ['aLatD','aLatM','aLatS','aLonD','aLonM','aLonS',
+   'bLatD','bLatM','bLatS','bLonD','bLonM','bLonS'].forEach(id => document.getElementById(id).value = '');
+  ['searchA','searchB'].forEach(id => document.getElementById(id).value = '');
+  ['dropA','dropB'].forEach(id => document.getElementById(id).classList.remove('open'));
+  document.getElementById('siteALabel').textContent = 'Not set';
+  document.getElementById('siteBLabel').textContent = 'Not set';
+  document.getElementById('mapDistInfo').style.display = 'none';
+  document.getElementById('terrainProfileCard').style.display = 'none';
+  document.getElementById('terrainStats').style.display = 'none';
+  document.getElementById('terrainStatus').textContent = 'Set both sites on the map — profile loads automatically.';
+  document.getElementById('terrainStatus').style.color = 'var(--text3)';
+  document.getElementById('losStatus').textContent = 'Set both sites';
+  document.getElementById('losStatus').style.cssText = 'background:var(--sl);color:var(--text3);font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px';
+  if (terrainChartObj) { terrainChartObj.destroy(); terrainChartObj = null; }
+  _terrainData = null;
+}
+
+// ── PRESETS ──
+function applyPreset(freq, dist) {
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  const map = {11:'preset1', 18:'preset2', 7:'preset3'};
+  if (map[freq]) document.getElementById(map[freq]).classList.add('active');
+  document.getElementById('selFreq').value = String(freq);
+  document.getElementById('customFreqWrap').style.display = 'none';
+  document.getElementById('inpDist').value = dist;
+  document.getElementById('selMode').value = 'optimal';
+  document.getElementById('customSpacingWrap').style.display = 'none';
+  calc();
+}
+
+// ── FREQUENCY CHANGE ──
+function onFreqChange() {
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  const v = document.getElementById('selFreq').value;
+  document.getElementById('customFreqWrap').style.display = v === 'custom' ? 'block' : 'none';
+  calc();
+}
+
+function onModeChange() {
+  const v = document.getElementById('selMode').value;
+  document.getElementById('customSpacingWrap').style.display = v === 'custom' ? 'block' : 'none';
+  if (v === 'custom') {
+    const f = getFreq();
+    const D = parseFloat(document.getElementById('inpDist').value);
+    if (f && D && !isNaN(f) && !isNaN(D)) {
+      const hopt = Math.sqrt(D * 150 / f);
+      document.getElementById('inpH1').value = hopt.toFixed(2);
+      document.getElementById('inpH2').value = hopt.toFixed(2);
+      updateSpacingSliders(hopt);
+    }
+  }
+  calc();
+}
+
+// ── GET FREQUENCY ──
+function getFreq() {
+  const v = document.getElementById('selFreq').value;
+  if (v === 'custom') return parseFloat(document.getElementById('customFreq').value) || null;
+  return parseFloat(v);
+}
+
+// ── GET MODULATION FROM MSE (BW-aware) ──
+// Table is ordered highest→lowest modulation.
+// MSEmax from MIMO formula is compared against each row's MSE threshold.
+// The highest modulation whose MSE threshold is ≤ MSEmax (i.e. system can support it) wins.
+// Since table is sorted highest-first, iterate and return first where mseMax <= m.mse
+function getModulation(mseMax) {
+  const table = getModTable();
+  for (const m of table) {
+    if (mseMax <= m.mse) return m;
+  }
+  return null;
+}
+
+// ── MAIN CALCULATION ──
+function calc() {
+  const f = getFreq(); // GHz
+  const D = parseFloat(document.getElementById('inpDist').value); // km
+  const mode = document.getElementById('selMode').value;
+
+  if (!f || !D || isNaN(f) || isNaN(D)) { resetResults(); return; }
+
+  // hopt² = D(km) × 300² / f(GHz) — note: D in km, C=300 (×10³ m/s / 10⁶ for GHz scale → factor = D×1000×(3e8)²/(f×1e9) → simplify)
+  // Formula from doc: hopt² = D × C² / (2 × f), C=300 (×10⁶ m/s relative unit normalised)
+  // Dimensional analysis: hopt (m), D (km), f (GHz)
+  // hopt² = D×1000 × (3×10⁸)² / (2 × f×10⁹) = 1000D × 9×10¹⁶ / (2f × 10⁹) = 1000D × 9×10⁷ / (2f) = D × 4.5×10¹⁰ / f
+  // That gives very large numbers. Let's use the standard MIMO formula:
+  // hopt = sqrt(D_m × lambda / 2) where lambda = c/f
+  // = sqrt(D_m × c / (2f)) = sqrt(D×1000 × 3×10⁸ / (2 × f×10⁹))
+  // = sqrt(D × 3×10¹¹ / (2f × 10⁹)) = sqrt(D × 150 / f)
+  // This matches: hopt² = D(km) × 150 / f(GHz)  [gives meters]
+  const hopt2 = D * 150 / f;
+  const hopt = Math.sqrt(hopt2);
+
+  // Update spacing sliders range/ticks whenever hopt changes
+  if (document.getElementById('selMode').value === 'custom') {
+    updateSpacingSliders(hopt);
+  }
+
+  let h1, h2, alpha;
+
+  if (mode === 'optimal') {
+    h1 = hopt;
+    h2 = hopt;
+    alpha = 1.0;
+  } else {
+    h1 = parseFloat(document.getElementById('inpH1').value) || hopt;
+    h2 = parseFloat(document.getElementById('inpH2').value) || hopt;
+    const h1h2 = h1 * h2;
+    alpha = h1h2 / hopt2;
+  }
+
+  // SNR improvement: SNRi = 20×log10(2 × |sin(π×α/2)|) − 3
+  // Clamp alpha to avoid sin(0) = -inf
+  const alphaClamped = Math.max(0.001, alpha);
+  const sinVal = Math.abs(Math.sin(Math.PI * alphaClamped / 2));
+  let snri;
+  if (sinVal < 1e-10) {
+    snri = -60; // effectively minus infinity
+  } else {
+    snri = 20 * Math.log10(2 * sinVal) - 3;
+  }
+
+  // MSE max — apply 3 dB safety deduction from SNR improvement for conservative modulation ceiling
+  const mseMax = -38 - (snri - 3);
+
+  // Max modulation
+  const maxMod = getModulation(mseMax);
+
+  // Alpha status
+  const alphaOk = alpha >= 0.5 && alpha <= 1.5;
+  const alphaOptimal = Math.abs(alpha - 1.0) < 0.05;
+
+  lastResult = { f, D, hopt, h1, h2, alpha, snri, mseMax, maxMod, alphaOk, alphaOptimal, mode };
+
+  renderResults(lastResult);
+}
+
+function resetResults() {
+  document.getElementById('mHopt').textContent = '—';
+  document.getElementById('mAlpha').textContent = '—';
+  document.getElementById('mSNR').textContent = '—';
+  document.getElementById('mMSE').textContent = '—';
+  document.getElementById('mMod').textContent = '—';
+  document.getElementById('statusBox').style.display = 'none';
+  document.getElementById('alphaDisplay').textContent = '—';
+  document.getElementById('alphaStatus').textContent = 'Enter parameters';
+  document.getElementById('alphaStatus').style.background = 'var(--sl)';
+  document.getElementById('alphaStatus').style.color = 'var(--text3)';
+  document.getElementById('gaugeNeedle').style.left = '50%';
+  renderModTable(null);
+  document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><div class="empty-icon">📐</div><div class="empty-title">No calculation yet</div><div class="empty-sub">Select a frequency and distance to begin.</div></div>`;
+}
+
+function renderResults(r) {
+  // Metrics
+  document.getElementById('mHopt').textContent = r.hopt.toFixed(2);
+  const alphaEl = document.getElementById('mAlpha');
+  alphaEl.textContent = r.alpha.toFixed(3);
+  alphaEl.className = 'metric-val ' + (r.alphaOk ? 'mv-green' : 'mv-red');
+
+  const snrEl = document.getElementById('mSNR');
+  snrEl.textContent = (r.snri >= 0 ? '+' : '') + r.snri.toFixed(1);
+  snrEl.className = 'metric-val ' + (r.snri > 0 ? 'mv-teal' : r.snri > -3 ? 'mv-amber' : 'mv-red');
+
+  // MSE achieved card
+  const mseEl = document.getElementById('mMSE');
+  mseEl.textContent = r.mseMax.toFixed(1);
+  mseEl.className = 'metric-val ' + (r.mseMax <= -38 ? 'mv-green' : r.mseMax <= -30 ? 'mv-amber' : 'mv-red');
+
+  const modEl = document.getElementById('mMod');
+  if (r.maxMod) {
+    modEl.textContent = r.maxMod.name;
+    modEl.className = 'metric-val mv-green';
+  } else {
+    modEl.textContent = 'None';
+    modEl.className = 'metric-val mv-red';
+  }
+
+  // Spacing guide (shown in custom mode)
+  if (r.mode === 'custom') {
+    // Usable range: α ∈ [0.5, 1.5] → h1×h2 ∈ [0.5×hopt², 1.5×hopt²]
+    // For symmetric case h1=h2: h = sqrt(α × hopt²)
+    const hMin = Math.sqrt(0.5 * (r.hopt * r.hopt));
+    const hMax = Math.sqrt(1.5 * (r.hopt * r.hopt));
+    document.getElementById('sgMin').textContent = hMin.toFixed(2);
+    document.getElementById('sgMax').textContent = hMax.toFixed(2);
+    document.getElementById('sgOpt').textContent = r.hopt.toFixed(2);
+    const sgAlpha = document.getElementById('sgAlpha');
+    sgAlpha.textContent = r.alpha.toFixed(3);
+    sgAlpha.style.color = r.alphaOk ? 'var(--green)' : 'var(--red)';
+  }
+
+  // Status box
+  const sb = document.getElementById('statusBox');
+  sb.style.display = 'flex';
+  if (r.alphaOptimal) {
+    sb.className = 'status-box status-ok';
+    document.getElementById('statusIcon').textContent = '✅';
+    document.getElementById('statusTitle').textContent = 'Optimal MIMO Configuration';
+    document.getElementById('statusSub').textContent = `α = ${r.alpha.toFixed(3)} — antennas are at the ideal separation. Maximum SNR improvement and highest modulation are achievable.`;
+  } else if (r.alphaOk) {
+    sb.className = 'status-box status-warn';
+    document.getElementById('statusIcon').textContent = '⚠️';
+    document.getElementById('statusTitle').textContent = 'Sub-optimal but Usable';
+    const deviation = ((Math.abs(r.alpha - 1.0)) * 100).toFixed(0);
+    document.getElementById('statusSub').textContent = `α = ${r.alpha.toFixed(3)} — ${deviation}% from optimal. MIMO is functional but SNR improvement and max modulation are reduced. Consider adjusting spacing to ${r.hopt.toFixed(2)} m.`;
+  } else {
+    sb.className = 'status-box status-fail';
+    document.getElementById('statusIcon').textContent = '❌';
+    document.getElementById('statusTitle').textContent = 'MIMO Not Viable at This Spacing';
+    document.getElementById('statusSub').textContent = `α = ${r.alpha.toFixed(3)} — outside the ±0.5 tolerance window. Antenna spacing must be close to ${r.hopt.toFixed(2)} m for effective MIMO operation.`;
+  }
+
+  // Alpha gauge (0 to 2 range → 0% to 100%)
+  const gaugePos = Math.min(Math.max(r.alpha / 2, 0), 1) * 100;
+  document.getElementById('gaugeNeedle').style.left = gaugePos + '%';
+  document.getElementById('alphaDisplay').textContent = r.alpha.toFixed(3);
+  const as = document.getElementById('alphaStatus');
+  if (r.alphaOptimal) { as.style.background = '#d1fae5'; as.style.color = '#065f46'; as.textContent = '✓ Optimal'; }
+  else if (r.alphaOk)  { as.style.background = '#fef3c7'; as.style.color = '#92400e'; as.textContent = '⚠ Sub-optimal'; }
+  else                  { as.style.background = '#fee2e2'; as.style.color = '#dc2626'; as.textContent = '✗ Out of range'; }
+
+  // Detail table
+  const bw = getActiveBW();
+  const rows = [
+    { param:'Frequency (f)', val:`${r.f} GHz`, formula:'Input', cls:'' },
+    { param:'Channel BW', val:`${bw} MHz`, formula:'Input', cls:'' },
+    { param:'Link Distance (D)', val:`${r.D} km`, formula:'Input', cls:'' },
+    { param:'h²_opt = D × 150 / f', val:`${(r.hopt*r.hopt).toFixed(2)} m²`, formula:'Optimal spacing squared', cls:'' },
+    { param:'h_opt = √(h²_opt)', val:`${r.hopt.toFixed(3)} m`, formula:'Optimal antenna separation', cls:'td-blue' },
+    { param:'h₁ (Site A spacing)', val:`${r.h1.toFixed(3)} m`, formula:r.mode==='optimal'?'= h_opt':'Manual input', cls:'' },
+    { param:'h₂ (Site B spacing)', val:`${r.h2.toFixed(3)} m`, formula:r.mode==='optimal'?'= h_opt':'Manual input', cls:'' },
+    { param:'α = (h₁ × h₂) / h²_opt', val:r.alpha.toFixed(4), formula:'Separation ratio', cls: r.alphaOk ? 'td-green' : 'td-red' },
+    { param:'SNRᵢ = 20·log₁₀(2·|sin(π·α/2)|)−3', val:`${r.snri.toFixed(2)} dB`, formula:'SNR improvement', cls: r.snri > 0 ? 'td-green' : 'td-amber' },
+    { param:'MSE_max = −38 − (SNRᵢ − 3dB)', val:`${r.mseMax.toFixed(2)} dB`, formula:'3 dB safety margin deducted', cls:'' },
+    { param:`Max Mod. @ ${bw} MHz BW`, val: r.maxMod ? r.maxMod.name : 'None viable', formula:`MSE_max vs ${bw} MHz thresholds`, cls: r.maxMod ? 'td-green' : 'td-red' },
+  ];
+
+  document.getElementById('detailWrap').innerHTML = `
+    <table class="detail-table">
+      <thead><tr><th>Parameter</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        ${rows.map(row=>`<tr><td>${row.param}</td><td class="td-mono ${row.cls}">${row.val}</td><td class="td-formula">${row.formula}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  // Modulation table
+  renderModTable(r.alphaOk ? r.maxMod : null, r.alphaOk);
+}
+
+function renderModTable(maxMod, alphaOk) {
+  const bw = getActiveBW();
+  const table = getModTable();
+  const mult = getMimoMult();
+  // Update header label
+  const lbl = document.getElementById('modTableBWLabel');
+  if (lbl) lbl.textContent = `BW: ${bw} MHz — Highlighted = Max supported at current α`;
+  // Update column header
+  const thMSE = document.getElementById('thMSE');
+  if (thMSE) thMSE.textContent = `MSE @ ${bw} MHz (dB)`;
+  // Update capacity column headers with multiplier
+  const capLabel = mult > 1 ? ` ×${mult}` : '';
+  ['thCap64','thCap128','thCap256','thCap512','thCap1024','thCap1518'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const sizes = ['64B','128B','256B','512B','1024B','1518B'];
+      el.textContent = sizes[i] + (capLabel ? capLabel : '') + ' (Mbps)';
+    }
+  });
+
+  // If alpha is out of range [0.5, 1.5] — all modulations not supported
+  if (alphaOk === false) {
+    const rows = table.map(m => {
+      const capRow = getCapRow(bw, m.name);
+      const capCells = capRow
+        ? capRow.cap.map(v => `<td class="cap-val">${fmtCap(v, mult)}</td>`).join('')
+        : '<td colspan="6" style="color:var(--text3);font-size:10px">—</td>';
+      return `
+      <tr class="mod-row-degraded">
+        <td style="font-weight:600;text-align:left">${m.name}</td>
+        <td>${m.mse.toFixed(1)}</td>
+        <td><span style="background:#fee2e2;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:10px;font-family:var(--sans)">✗ Not supported</span></td>
+        ${capCells}
+      </tr>`;
+    }).join('');
+    document.getElementById('modTableBody').innerHTML = rows;
+    return;
+  }
+
+  // table is ordered highest→lowest modulation (4KQAM first)
+  const maxIdx = maxMod ? table.findIndex(m => m.name === maxMod.name) : -1;
+  const rows = table.map((m, idx) => {
+    const isActive = maxMod && idx === maxIdx;
+    const isBelow  = maxMod && idx > maxIdx;
+    const isAbove  = maxMod && idx < maxIdx;
+    let status;
+    if (isActive) status = `<span style="background:#dbeafe;color:var(--blue);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;font-family:var(--sans)">✓ MAX SUPPORTED</span>`;
+    else if (isBelow) status = `<span style="background:#d1fae5;color:#065f46;border-radius:5px;padding:2px 8px;font-size:10px;font-family:var(--sans)">✓ Supported</span>`;
+    else if (isAbove) status = `<span style="background:#fee2e2;color:#dc2626;border-radius:5px;padding:2px 8px;font-size:10px;font-family:var(--sans)">✗ Not supported</span>`;
+    else status = '—';
+
+    const capRow = getCapRow(bw, m.name);
+    let capCells;
+    if (capRow) {
+      capCells = capRow.cap.map(v => {
+        const cls = isActive ? 'cap-val cap-val-max' : 'cap-val';
+        return `<td class="${cls}">${fmtCap(v, mult)}</td>`;
+      }).join('');
+    } else {
+      capCells = '<td colspan="6" style="color:var(--text3);font-size:10px">—</td>';
+    }
+
+    return `<tr class="${isActive ? 'active-mod' : isAbove ? 'mod-row-degraded' : ''}">
+      <td style="font-weight:600;text-align:left">${m.name}</td>
+      <td>${m.mse.toFixed(1)}</td>
+      <td>${status}</td>
+      ${capCells}
+    </tr>`;
+  });
+  document.getElementById('modTableBody').innerHTML = rows.join('');
+}
+
+// ── DARK MODE ──
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('darkIcon').textContent = isDark ? '☀️' : '🌙';
+  document.getElementById('darkLabel').textContent = isDark ? 'Light' : 'Dark';
+  try { localStorage.setItem('mimoDark', isDark ? '1' : '0'); } catch(e){}
+  // Redraw terrain chart if visible so colors update
+  if (terrainChartObj && _terrainData) redrawTerrainOverlays();
+}
+
+function applyDarkPref() {
+  let dark = false;
+  try { dark = localStorage.getItem('mimoDark') === '1'; } catch(e){}
+  // Also respect system preference if no saved pref
+  if (localStorage.getItem('mimoDark') === null) {
+    dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  if (dark) {
+    document.body.classList.add('dark');
+    document.getElementById('darkIcon').textContent = '☀️';
+    document.getElementById('darkLabel').textContent = 'Light';
+  }
+}
+let terrainChartObj = null;
+let _terrainFetching = false;
+let _terrainData = null;
+
+function interpGreatCircle(lat1,lon1,lat2,lon2,n){
+  const pts=[];
+  const toRad=d=>d*Math.PI/180, toDeg=r=>r*180/Math.PI;
+  const phi1=toRad(lat1),lam1=toRad(lon1),phi2=toRad(lat2),lam2=toRad(lon2);
+  const dPhi=phi2-phi1,dLam=lam2-lam1;
+  const a=Math.sin(dPhi/2)**2+Math.cos(phi1)*Math.cos(phi2)*Math.sin(dLam/2)**2;
+  const angDist=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  for(let i=0;i<=n;i++){
+    const f=i/n;
+    if(angDist<1e-10){pts.push({lat:lat1,lon:lon1,f});continue;}
+    const A=Math.sin((1-f)*angDist)/Math.sin(angDist);
+    const B=Math.sin(f*angDist)/Math.sin(angDist);
+    const x=A*Math.cos(phi1)*Math.cos(lam1)+B*Math.cos(phi2)*Math.cos(lam2);
+    const y=A*Math.cos(phi1)*Math.sin(lam1)+B*Math.cos(phi2)*Math.sin(lam2);
+    const z=A*Math.sin(phi1)+B*Math.sin(phi2);
+    pts.push({lat:toDeg(Math.atan2(z,Math.sqrt(x*x+y*y))),lon:toDeg(Math.atan2(y,x)),f});
+  }
+  return pts;
+}
+
+function fresnelR1(d1_km,d2_km,freq_ghz){
+  const lam=0.3/freq_ghz;
+  return Math.sqrt(lam*d1_km*1000*d2_km*1000/((d1_km+d2_km)*1000));
+}
+
+async function fetchTerrainProfile(){
+  if(_terrainFetching)return;
+  if(!siteA||!siteB){
+    document.getElementById('terrainStatus').textContent='❌ Set both sites on the map first.';
+    document.getElementById('terrainStatus').style.color='var(--red)';
+    return;
+  }
+  _terrainFetching=true;
+  // Capture coords + distance ONCE at fetch start — before any awaits
+  // to avoid race condition if user moves sites during the API call
+  const latA=siteA.lat, lonA=siteA.lng, latB=siteB.lat, lonB=siteB.lng;
+  const kmTotal=haversineDist({lat:latA,lng:lonA},{lat:latB,lng:lonB});
+  const hA=parseFloat(document.getElementById('antHgtA').value)||3;
+  const hB=parseFloat(document.getElementById('antHgtB').value)||3;
+  const N=60;
+  const pts=interpGreatCircle(latA,lonA,latB,lonB,N);
+  const locations=pts.map(p=>({latitude:parseFloat(p.lat.toFixed(5)),longitude:parseFloat(p.lon.toFixed(5))}));
+
+  const btn=document.getElementById('terrainBtn');
+  if(btn){btn.textContent='⏳ Loading…';btn.disabled=true;}
+  document.getElementById('terrainStatus').textContent='⏳ Fetching elevation data…';
+  document.getElementById('terrainStatus').style.color='var(--teal)';
+  document.getElementById('terrainProfileCard').style.display='none';
+
+  try{
+    let elevations=null;
+
+    // Attempt 1: opentopodata POST
+    try{
+      const r1=await fetch('https://api.opentopodata.org/v1/srtm90m',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({locations})
+      });
+      if(r1.ok){const d1=await r1.json();if(d1.status==='OK')elevations=d1.results.map(r=>r.elevation??0);}
+    }catch(e1){console.warn('opentopodata POST:',e1);}
+
+    // Attempt 2: opentopodata GET
+    if(!elevations){
+      try{
+        const locs=pts.map(p=>p.lat.toFixed(5)+','+p.lon.toFixed(5)).join('|');
+        const r2=await fetch('https://api.opentopodata.org/v1/srtm90m?locations='+locs);
+        if(r2.ok){const d2=await r2.json();if(d2.status==='OK')elevations=d2.results.map(r=>r.elevation??0);}
+      }catch(e2){console.warn('opentopodata GET:',e2);}
+    }
+
+    // Attempt 3: open-elevation.com
+    if(!elevations){
+      try{
+        const r3=await fetch('https://api.open-elevation.com/api/v1/lookup',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({locations})
+        });
+        if(r3.ok){const d3=await r3.json();if(d3.results)elevations=d3.results.map(r=>r.elevation??0);}
+      }catch(e3){console.warn('open-elevation:',e3);}
+    }
+
+    if(!elevations)throw new Error('All elevation APIs failed — check network connection');
+
+    // Guard: if sites moved while fetch was in progress, discard and re-fetch
+    if(!siteA||!siteB||Math.abs(siteA.lat-latA)>1e-6||Math.abs(siteB.lat-latB)>1e-6){
+      console.warn('Sites moved during fetch — re-triggering');
+      _terrainFetching=false;
+      if(btn){btn.textContent='↻ Refresh';btn.disabled=false;}
+      fetchTerrainProfile();
+      return;
+    }
+
+    const distances=pts.map(p=>parseFloat((p.f*kmTotal).toFixed(2)));
+
+    const e0=elevations[0]+hA, eN=elevations[N]+hB;
+    const losLine=elevations.map((_,i)=>e0+(eN-e0)*(i/N));
+
+    let obstructed=false, maxClearance=Infinity;
+    elevations.forEach((e,i)=>{
+      const c=losLine[i]-e;
+      if(c<maxClearance)maxClearance=c;
+      if(c<0)obstructed=true;
+    });
+
+    // LOS status badge
+    const statusEl=document.getElementById('losStatus');
+    if(obstructed){
+      statusEl.textContent='✗ Obstructed';
+      statusEl.style.cssText='background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px';
+    } else {
+      statusEl.textContent='✓ Clear LOS (min '+maxClearance.toFixed(0)+' m)';
+      statusEl.style.cssText='background:#d1fae5;color:#065f46;font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px';
+    }
+    document.getElementById('terrainNote').textContent='SRTM 90m · '+pts.length+' samples · '+kmTotal.toFixed(2)+' km';
+    document.getElementById('terrainStatus').textContent='✓ Profile loaded';
+    document.getElementById('terrainStatus').style.color='var(--green)';
+
+    // Stats
+    const maxEl=Math.max(...elevations), minEl=Math.min(...elevations);
+    document.getElementById('tElA').textContent=elevations[0].toFixed(0)+' m ASL';
+    document.getElementById('tElB').textContent=elevations[N].toFixed(0)+' m ASL';
+    document.getElementById('tMaxEl').textContent=maxEl.toFixed(0)+' m';
+    document.getElementById('tMinEl').textContent=minEl.toFixed(0)+' m';
+    document.getElementById('terrainStats').style.display='block';
+
+    const freq=getFreq()||11;
+    renderTerrainChart(distances,elevations,losLine,obstructed,'km',N,kmTotal,freq);
+
+  }catch(e){
+    document.getElementById('losStatus').textContent='⚠ Unavailable';
+    document.getElementById('losStatus').style.cssText='background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px';
+    document.getElementById('terrainStatus').textContent='❌ '+e.message;
+    document.getElementById('terrainStatus').style.color='var(--red)';
+    console.error('Terrain profile error:',e);
+  }
+  if(btn){btn.textContent='↻ Refresh';btn.disabled=false;}
+  _terrainFetching=false;
+}
+
+function renderTerrainChart(distances,elevations,losLine,obstructed,distUnit,n,totalKm,freq){
+  const showFr=document.getElementById('showFresnel')?.checked!==false;
+  const canvas=document.getElementById('terrainChartCanvas');
+  if(!canvas)return;
+  if(terrainChartObj){terrainChartObj.destroy();terrainChartObj=null;}
+
+  // Show the card FIRST so the canvas has layout dimensions
+  document.getElementById('terrainProfileCard').style.display='block';
+
+  const fresnelUp=[],fresnelDn=[];
+  distances.forEach((_,i)=>{
+    const d1=(i/n)*totalKm, d2=((n-i)/n)*totalKm;
+    if(d1<0.001||d2<0.001){fresnelUp.push(losLine[i]);fresnelDn.push(losLine[i]);return;}
+    const r=fresnelR1(d1,d2,freq)*0.6;
+    fresnelUp.push(losLine[i]+r);
+    fresnelDn.push(losLine[i]-r);
+  });
+  const fresnelObstr=elevations.map((e,i)=>fresnelDn[i]<e?e:null);
+
+  const allVals=[...elevations,...losLine,...fresnelUp].filter(v=>v!=null);
+  const yMin=Math.floor(Math.min(...allVals)-5);
+  const yMax=Math.ceil(Math.max(...allVals)+10);
+
+  _terrainData={distances,elevations,losLine,fresnelDn,distUnit,n,totalKm,freq};
+
+  const datasets=[
+    ...(showFr?[
+      {label:'Fresnel upper',data:fresnelUp,borderColor:'rgba(22,163,74,.4)',
+       backgroundColor:'rgba(22,163,74,.12)',borderWidth:1,borderDash:[3,2],
+       fill:'+1',tension:.25,pointRadius:0,order:4},
+      {label:'Fresnel lower',data:fresnelDn,borderColor:'rgba(22,163,74,.4)',
+       backgroundColor:'rgba(22,163,74,.12)',borderWidth:1,borderDash:[3,2],
+       fill:false,tension:.25,pointRadius:0,order:4},
+    ]:[]),
+    {label:'Terrain',data:elevations,
+     borderColor:'#475569',backgroundColor:'rgba(148,163,184,.35)',
+     borderWidth:1.5,fill:true,tension:.25,pointRadius:0,order:3},
+    ...(showFr&&fresnelObstr.some(v=>v!==null)?[{
+      label:'Fresnel intrusion',data:fresnelObstr,
+      borderColor:'rgba(239,68,68,0)',backgroundColor:'rgba(239,68,68,.4)',
+      borderWidth:0,fill:true,tension:.25,pointRadius:0,order:2
+    }]:[]),
+    {label:'LOS',data:losLine,
+     borderColor:'#3b82f6',backgroundColor:'transparent',
+     borderWidth:2.5,borderDash:[8,4],fill:false,tension:0,pointRadius:0,order:1},
+  ];
+
+  const isDark = document.body.classList.contains('dark');
+  const axisColor = isDark ? '#94a3b8' : '#475569';
+  const gridColor = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
+
+  terrainChartObj=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{labels:distances,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:{duration:300},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(15,45,74,.92)',titleColor:'#bae6fd',bodyColor:'#e2e8f0',padding:8,
+          callbacks:{
+            title:items=>{
+               const km = distances[items[0].dataIndex];
+               return 'Dist: '+(km!==undefined?parseFloat(km).toFixed(2):items[0].label)+' '+distUnit;
+             },
+            label:item=>item.raw!=null?item.dataset.label+': '+parseFloat(item.raw).toFixed(1)+' m ASL':null,
+            filter:item=>item.raw!=null
+          }
+        }
+      },
+      scales:{
+        x:{title:{display:true,text:'Distance ('+distUnit+')',font:{size:10},color:axisColor},
+           grid:{color:gridColor},
+           ticks:{color:axisColor,font:{size:9},maxTicksLimit:8,
+             callback:(value,index,ticks)=>{
+               // value is the index into labels array in category mode
+               const km = distances[index];
+               return km !== undefined ? parseFloat(km).toFixed(1) : '';
+             }}},
+        y:{title:{display:true,text:'Elevation (m ASL)',font:{size:10},color:axisColor},
+           grid:{color:gridColor},ticks:{color:axisColor,font:{size:9}},min:yMin,max:yMax}
+      },
+      layout:{padding:{top:6,right:10,bottom:2,left:0}}
+    }
+  });
+}
+
+function redrawTerrainOverlays(){
+  if(!_terrainData)return;
+  const{distances,elevations,losLine,distUnit,n,totalKm,freq}=_terrainData;
+  const hasObstr=losLine.some((l,i)=>l<elevations[i]);
+  renderTerrainChart(distances,elevations,losLine,hasObstr,distUnit,n,totalKm,freq);
+}
+
+function optimiseAntennaHeights(){
+  if(!_terrainData){alert('Please generate the terrain profile first.');return;}
+  const{elevations,n,totalKm,freq}=_terrainData;
+  const eA=elevations[0],eB=elevations[n];
+  const deficits=elevations.map((e,i)=>{
+    const t=i/n;
+    const d1=t*totalKm,d2=(1-t)*totalKm;
+    const r60=(d1>0.001&&d2>0.001)?fresnelR1(d1,d2,freq)*0.6:0;
+    const req=e+r60+0.5;
+    return req-(eA*(1-t)+eB*t);
+  });
+  let bestHa=3,bestHb=3,bestTotal=Infinity;
+  for(let hA=0;hA<=200;hA+=0.5){
+    let hB=0;
+    for(let i=1;i<n;i++){
+      const t=i/n;
+      const needed=(deficits[i]-hA*(1-t))/t;
+      if(needed>hB)hB=needed;
+    }
+    hB=Math.max(hB,0,deficits[n]);
+    const total=hA+hB;
+    if(total<bestTotal){bestTotal=total;bestHa=hA;bestHb=hB;}
+  }
+  bestHa=Math.max(0,Math.ceil(bestHa*2)/2);
+  bestHb=Math.max(0,Math.ceil(bestHb*2)/2);
+  document.getElementById('antHgtA').value=bestHa.toFixed(1);
+  document.getElementById('antHgtB').value=bestHb.toFixed(1);
+  fetchTerrainProfile();
+  alert('Optimised: Site A = '+bestHa+' m AGL, Site B = '+bestHb+' m AGL\n(60% Fresnel clearance + 0.5 m margin)');
+}
+
+function updateTerrainProfile(){
+  if(siteA&&siteB){
+    clearTimeout(window._terrainTimer);
+    window._terrainTimer=setTimeout(fetchTerrainProfile,400);
+  }
+}
+
+// ── SPACING SLIDERS ──
+// Slider range: 0 to 2 × hopt (so hopt sits at 50%)
+let _spMax = 20; // updated whenever hopt changes
+
+function initSpacingSliders() {
+  initOneSpacingSlider('A', 'spTrackA', 'spNeedleA', 'inpH1', 'h1');
+  initOneSpacingSlider('B', 'spTrackB', 'spNeedleB', 'inpH2', 'h2');
+}
+
+function initOneSpacingSlider(site, trackId, needleId, inputId, which) {
+  const track = document.getElementById(trackId);
+  const needle = document.getElementById(needleId);
+  let dragging = false;
+
+  function hFromEvent(e) {
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const h = parseFloat((ratio * _spMax).toFixed(1));
+    return Math.max(0.1, h);
+  }
+
+  function applyH(h) {
+    const inp = document.getElementById(inputId);
+    inp.value = h.toFixed(1);
+    needle.classList.add('dragging');
+    updateSpacingNeedle(site, h);
+    onSpacingInput(which);
+  }
+
+  track.addEventListener('mousedown', e => { dragging = true; applyH(hFromEvent(e)); e.preventDefault(); });
+  track.addEventListener('touchstart', e => { dragging = true; applyH(hFromEvent(e)); }, {passive:true});
+  document.addEventListener('mousemove', e => { if (dragging) applyH(hFromEvent(e)); });
+  document.addEventListener('touchmove', e => { if (dragging) applyH(hFromEvent(e)); }, {passive:true});
+  document.addEventListener('mouseup', () => { if(dragging){dragging=false;needle.classList.remove('dragging');}});
+  document.addEventListener('touchend', () => { if(dragging){dragging=false;needle.classList.remove('dragging');}});
+}
+
+function updateSpacingNeedle(site, h) {
+  const pct = Math.min(Math.max(h / _spMax, 0), 1) * 100;
+  document.getElementById('spNeedle'+site).style.left = pct + '%';
+}
+
+function updateSpacingSliders(hopt) {
+  _spMax = Math.max(hopt * 2, 1);
+  const h1 = parseFloat(document.getElementById('inpH1').value) || hopt;
+  const h2 = parseFloat(document.getElementById('inpH2').value) || hopt;
+
+  // Update tick (optimal mark) position — always at 50%
+  ['A','B'].forEach(s => {
+    const tick = document.getElementById('spTick'+s);
+    if (tick) tick.style.left = '50%';
+    const tl = document.getElementById('spTickLabel'+s);
+    if (tl) tl.textContent = hopt.toFixed(1)+'m';
+  });
+
+  // Update axis labels
+  const fmt = v => v >= 10 ? v.toFixed(0) : v.toFixed(1);
+  ['A','B'].forEach(s => {
+    document.getElementById('spLabel'+s+'_25').textContent = fmt(_spMax * 0.25);
+    document.getElementById('spLabel'+s+'_50').textContent = fmt(hopt);
+    document.getElementById('spLabel'+s+'_75').textContent = fmt(_spMax * 0.75);
+    document.getElementById('spLabel'+s+'_max').textContent = fmt(_spMax);
+  });
+
+  // Position needles
+  updateSpacingNeedle('A', h1);
+  updateSpacingNeedle('B', h2);
+}
+
+function onSpacingInput(which) {
+  // Called from number input — sync needle then recalc
+  const h1 = parseFloat(document.getElementById('inpH1').value) || 0;
+  const h2 = parseFloat(document.getElementById('inpH2').value) || 0;
+  if (which === 'h1' && h1 > 0) updateSpacingNeedle('A', h1);
+  if (which === 'h2' && h2 > 0) updateSpacingNeedle('B', h2);
+  calc();
+}
+function initGaugeDrag() {
+  const track = document.getElementById('gaugeTrack');
+  const needle = document.getElementById('gaugeNeedle');
+  let dragging = false;
+
+  function alphaFromEvent(e) {
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    return parseFloat((ratio * 2).toFixed(2)); // 0–2 range, 2 decimal
+  }
+
+  function applyAlpha(alpha) {
+    // Switch to custom mode
+    const modeEl = document.getElementById('selMode');
+    if (modeEl.value !== 'custom') {
+      modeEl.value = 'custom';
+      document.getElementById('customSpacingWrap').style.display = 'block';
+    }
+    // Back-calculate symmetric h from alpha: h1=h2=h → α = h²/hopt² → h = sqrt(α)×hopt
+    const f = getFreq();
+    const D = parseFloat(document.getElementById('inpDist').value);
+    if (!f || !D || isNaN(f) || isNaN(D)) return;
+    const hopt = Math.sqrt(D * 150 / f);
+    const h = parseFloat((Math.sqrt(Math.max(alpha, 0.01)) * hopt).toFixed(2));
+    document.getElementById('inpH1').value = h;
+    document.getElementById('inpH2').value = h;
+    // Move needle immediately without transition
+    needle.classList.add('dragging');
+    needle.style.left = (alpha / 2 * 100) + '%';
+    calc();
+  }
+
+  track.addEventListener('mousedown', e => {
+    dragging = true;
+    needle.classList.add('dragging');
+    applyAlpha(alphaFromEvent(e));
+    e.preventDefault();
+  });
+  track.addEventListener('touchstart', e => {
+    dragging = true;
+    needle.classList.add('dragging');
+    applyAlpha(alphaFromEvent(e));
+  }, {passive: true});
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    applyAlpha(alphaFromEvent(e));
+  });
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    applyAlpha(alphaFromEvent(e));
+  }, {passive: true});
+
+  document.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; needle.classList.remove('dragging'); }
+  });
+  document.addEventListener('touchend', () => {
+    if (dragging) { dragging = false; needle.classList.remove('dragging'); }
+  });
+}
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  applyDarkPref();
+  initMap();
+  initGaugeDrag();
+  initSpacingSliders();
+  renderModTable(null);
+  applyPreset(11, 20);
+});
+</script>
+<!-- ══════════════════════════════════════════════
+     HELP MODAL
+══════════════════════════════════════════════ -->
+<style>
+.help-overlay {
+  display:none; position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,.55); backdrop-filter:blur(3px);
+  align-items:center; justify-content:center;
+}
+.help-overlay.open { display:flex; }
+.help-modal {
+  background:var(--card); color:var(--text);
+  border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.45);
+  border:1px solid var(--border-l);
+  width:min(820px,96vw); max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.help-hdr {
+  background:linear-gradient(135deg,var(--navy),var(--navy2));
+  padding:16px 20px; display:flex; justify-content:space-between; align-items:center;
+  flex-shrink:0;
+}
+.help-hdr-title { color:#e2e8f0; font-size:15px; font-weight:700; display:flex; align-items:center; gap:9px; }
+.help-close {
+  width:30px;height:30px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.12);color:#e2e8f0;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.help-close:hover { background:rgba(255,255,255,.25); }
+
+/* Tab bar */
+.help-tabs {
+  display:flex; border-bottom:2px solid var(--border-l); background:var(--sl);
+  overflow-x:auto; flex-shrink:0;
+}
+.help-tab {
+  padding:9px 16px; font-size:11.5px; font-weight:600; cursor:pointer;
+  border:none; background:none; color:var(--text3); white-space:nowrap;
+  border-bottom:3px solid transparent; margin-bottom:-2px;
+  transition:all .15s; font-family:var(--sans);
+}
+.help-tab:hover { color:var(--text2); background:var(--card); }
+.help-tab.active { color:var(--blue); border-bottom-color:var(--blue); background:var(--card); }
+
+/* Content */
+.help-body { flex:1; overflow-y:auto; padding:20px 24px; }
+.help-section { display:none; }
+.help-section.active { display:block; }
+
+.help-h2 {
+  font-size:14px; font-weight:700; color:var(--text); margin:0 0 12px;
+  display:flex; align-items:center; gap:8px;
+}
+.help-h3 { font-size:12px; font-weight:700; color:var(--text2); margin:16px 0 6px; }
+.help-p { font-size:12px; color:var(--text2); line-height:1.75; margin-bottom:10px; }
+.help-ul { padding-left:18px; margin-bottom:10px; }
+.help-ul li { font-size:12px; color:var(--text2); line-height:1.75; margin-bottom:3px; }
+.help-ul li b { color:var(--text); }
+
+.help-kv {
+  display:grid; grid-template-columns:auto 1fr; gap:6px 14px;
+  background:var(--sl); border-radius:8px; padding:12px 14px; margin-bottom:10px;
+}
+.help-key {
+  font-family:var(--mono); font-size:11px; font-weight:600;
+  color:var(--blue); white-space:nowrap; padding-top:1px;
+}
+.help-val { font-size:11.5px; color:var(--text2); line-height:1.6; }
+
+.help-formula {
+  background:var(--sl); border-left:3px solid var(--blue);
+  border-radius:0 8px 8px 0; padding:10px 14px; margin:10px 0;
+  font-family:var(--mono); font-size:12px; color:var(--text); line-height:1.9;
+}
+.help-tip {
+  background:var(--teal-l); border:1px solid var(--teal);
+  border-radius:8px; padding:9px 13px; margin:10px 0;
+  font-size:11.5px; color:var(--text2); line-height:1.65;
+}
+body.dark .help-tip { background:var(--teal-l); color:var(--text2); }
+
+.help-badge {
+  display:inline-block; font-size:10px; font-weight:700; padding:2px 8px;
+  border-radius:10px; margin:0 2px;
+}
+.hb-green { background:var(--green-l); color:var(--green-d); }
+.hb-amber { background:var(--amber-l); color:#92400e; }
+.hb-red { background:var(--red-l); color:var(--red); }
+.hb-blue { background:var(--blue-l); color:var(--blue); }
+
+/* Footer nav */
+.help-footer {
+  border-top:1px solid var(--border-l); padding:12px 20px;
+  display:flex; justify-content:space-between; align-items:center;
+  flex-shrink:0; background:var(--sl);
+}
+.help-nav-btn {
+  padding:6px 16px; border-radius:7px; border:1.5px solid var(--border);
+  background:var(--card); color:var(--text2); font-family:var(--sans);
+  font-size:12px; font-weight:600; cursor:pointer; transition:all .12s;
+}
+.help-nav-btn:hover { border-color:var(--blue); color:var(--blue); }
+.help-nav-btn:disabled { opacity:.35; cursor:default; }
+.help-nav-btn.primary {
+  background:var(--blue); border-color:var(--blue); color:#fff;
+}
+.help-nav-btn.primary:hover { background:#1558a0; }
+.help-page-indicator { font-size:11px; color:var(--text3); font-family:var(--mono); }
+</style>
+
+<div class="help-overlay" id="helpOverlay" onclick="if(event.target===this)closeHelp()">
+<div class="help-modal">
+
+  <!-- Header -->
+  <div class="help-hdr">
+    <div class="help-hdr-title">
+      <span>📖</span> MIMO Antenna Spacing Calculator — User Guide
+    </div>
+    <button class="help-close" onclick="closeHelp()">✕</button>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="help-tabs" id="helpTabs">
+    <button class="help-tab active" onclick="gotoHelpTab(0)">🚀 Quick Start</button>
+    <button class="help-tab" onclick="gotoHelpTab(1)">📡 Link Parameters</button>
+    <button class="help-tab" onclick="gotoHelpTab(2)">📐 MIMO Theory</button>
+    <button class="help-tab" onclick="gotoHelpTab(3)">📊 Results</button>
+    <button class="help-tab" onclick="gotoHelpTab(4)">🗺️ Map & Sites</button>
+    <button class="help-tab" onclick="gotoHelpTab(5)">⛰️ Terrain Profile</button>
+    <button class="help-tab" onclick="gotoHelpTab(6)">📋 Modulation Table</button>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="help-body">
+
+    <!-- ── 0. QUICK START ── -->
+    <div class="help-section active" id="hs0">
+      <div class="help-h2">🚀 Quick Start</div>
+      <div class="help-p">This tool calculates the optimal antenna vertical separation for MIMO operation on a point-to-point microwave link, and shows which modulation orders are achievable given the actual or planned spacing.</div>
+
+      <div class="help-h3">In 3 steps:</div>
+      <div class="help-kv">
+        <div class="help-key">Step 1</div>
+        <div class="help-val">Select your <b>frequency band</b> and <b>channel bandwidth</b>, then enter the <b>link distance</b> — or click two points on the map to set Site A and Site B. The distance fills automatically.</div>
+        <div class="help-key">Step 2</div>
+        <div class="help-val">The tool instantly shows the <b>optimal antenna separation h_opt</b> and the <b>maximum supported modulation</b> at that spacing. Use the Optimal mode to see ideal results.</div>
+        <div class="help-key">Step 3</div>
+        <div class="help-val">Switch to <b>Custom spacing</b> to enter your real planned or constrained antenna heights. The α gauge and modulation table update live to show the degradation.</div>
+      </div>
+
+      <div class="help-tip">
+        💡 <b>Tip:</b> Use the <b>Preset buttons</b> (11 GHz / 20 km, 18 GHz / 10 km, 7 GHz / 30 km) to instantly load common use cases.
+      </div>
+      <div class="help-tip">
+        💡 <b>Tip:</b> The <b>α gauge</b> is draggable — slide it to explore how spacing affects modulation without entering numbers.
+      </div>
+    </div>
+
+    <!-- ── 1. LINK PARAMETERS ── -->
+    <div class="help-section" id="hs1">
+      <div class="help-h2">📡 Link Parameters</div>
+
+      <div class="help-h3">Frequency Band</div>
+      <div class="help-p">Select the operating frequency from 6 to 26 GHz, or enter a custom value. MIMO is most practical at lower frequencies (6–18 GHz) where the required antenna spacing is mechanically achievable on a single mast.</div>
+
+      <div class="help-h3">Channel Bandwidth</div>
+      <div class="help-p">Selects the MSE threshold table. Available: 14 / 28 / 40 / 56 / 80 / 112 / 224 MHz. Each bandwidth has slightly different MSE thresholds per modulation — the modulation table updates automatically when changed.</div>
+
+      <div class="help-h3">Link Distance</div>
+      <div class="help-p">Enter manually in km, or click two points on the map. The map distance updates this field automatically on every marker move.</div>
+
+      <div class="help-h3">Antenna Spacing Mode</div>
+      <div class="help-kv">
+        <div class="help-key">Optimal</div>
+        <div class="help-val">Automatically sets h₁ = h₂ = h_opt. α = 1.0 exactly. Use this to see the theoretical maximum performance of the link.</div>
+        <div class="help-key">Custom</div>
+        <div class="help-val">Enter h₁ and h₂ independently for each site. Each site has a drag slider (range 0 → 2×h_opt). The spacing guide shows the usable range in metres and live α.</div>
+      </div>
+
+      <div class="help-tip">
+        💡 When switching to Custom, h₁ and h₂ are pre-filled with h_opt so you start at α = 1.0 and adjust from there.
+      </div>
+    </div>
+
+    <!-- ── 2. MIMO THEORY ── -->
+    <div class="help-section" id="hs2">
+      <div class="help-h2">📐 MIMO Theory & Formulas</div>
+
+      <div class="help-h3">Optimal Antenna Separation</div>
+      <div class="help-p">For a 2×2 (or 4×4) MIMO link, the two antennas on each mast must be separated so their signals arrive at the remote end with a 90° phase difference — ensuring orthogonality of the MIMO channels.</div>
+      <div class="help-formula">
+        h²_opt = D × 150 / f<br>
+        h_opt = √(D × 150 / f)<br><br>
+        D = link distance (km)<br>
+        f = frequency (GHz)<br>
+        h_opt = optimal separation (m)
+      </div>
+
+      <div class="help-h3">Alpha (α) — Spacing Ratio</div>
+      <div class="help-p">α measures how close the actual spacing product h₁×h₂ is to the ideal value h²_opt:</div>
+      <div class="help-formula">
+        α = (h₁ × h₂) / h²_opt
+      </div>
+      <div class="help-kv">
+        <div class="help-key">α = 1.0</div><div class="help-val">Perfect orthogonality. Maximum SNR improvement.</div>
+        <div class="help-key">0.5 ≤ α ≤ 1.5</div><div class="help-val">Usable range. Some degradation but MIMO remains viable.</div>
+        <div class="help-key">α &lt; 0.5 or &gt; 1.5</div><div class="help-val">MIMO not viable. All modulations marked as not supported.</div>
+      </div>
+
+      <div class="help-h3">SNR Improvement</div>
+      <div class="help-formula">
+        SNRᵢ = 20 × log₁₀(2 × |sin(π × α / 2)|) − 3
+      </div>
+      <div class="help-p">At α = 1.0: SNRᵢ ≈ +3 dB. At α = 0.5 or 1.5: SNRᵢ ≈ 0 dB. Below α = 0.5: SNRᵢ goes negative.</div>
+
+      <div class="help-h3">MSE Max (with 3 dB safety margin)</div>
+      <div class="help-formula">
+        MSE_max = −38 − (SNRᵢ − 3 dB)
+      </div>
+      <div class="help-p">A 3 dB safety margin is deducted from the SNR improvement before computing the achievable MSE. This gives a conservative modulation ceiling. The maximum supported modulation is the highest order whose BW-specific MSE threshold is ≤ MSE_max.</div>
+    </div>
+
+    <!-- ── 3. RESULTS ── -->
+    <div class="help-section" id="hs3">
+      <div class="help-h2">📊 Reading the Results</div>
+
+      <div class="help-h3">Summary Metric Cards</div>
+      <div class="help-kv">
+        <div class="help-key">h_opt</div><div class="help-val">The ideal per-mast antenna separation in metres for this frequency and distance.</div>
+        <div class="help-key">Alpha (α)</div><div class="help-val">Ratio of actual to optimal spacing. Green = OK, Red = out of range.</div>
+        <div class="help-key">SNR Improvement</div><div class="help-val">dB gain from MIMO at the current α. Positive = gain, negative = loss vs single antenna.</div>
+        <div class="help-key">MSE achieved</div><div class="help-val">The system's effective MSE floor after applying the MIMO gain and 3 dB margin. Lower (more negative) = better. Compared against the BW-specific threshold table to find max modulation.</div>
+        <div class="help-key">Max Modulation</div><div class="help-val">Highest modulation order supportable at current α and channel BW.</div>
+      </div>
+
+      <div class="help-h3">Status Banner</div>
+      <div class="help-p">
+        <span class="help-badge hb-green">✓ Optimal</span> α within 5% of 1.0 — ideal configuration.<br>
+        <span class="help-badge hb-amber">⚠ Sub-optimal</span> α in [0.5, 1.5] — usable but degraded.<br>
+        <span class="help-badge hb-red">✗ Not viable</span> α outside [0.5, 1.5] — MIMO inoperable.
+      </div>
+
+      <div class="help-h3">α Gauge</div>
+      <div class="help-p">The colour-coded bar shows α on a 0–2 scale. The green zone (centre) is the optimal region. You can <b>click or drag the gauge</b> to set α interactively — it back-calculates symmetric h₁ = h₂ and switches to Custom mode automatically.</div>
+
+      <div class="help-h3">Spacing Sliders (Custom mode)</div>
+      <div class="help-p">Each site has an independent drag slider. The scale is 0 → 2×h_opt, with h_opt marked at the centre. The spacing guide below shows the usable min/max range in metres and the live α value.</div>
+    </div>
+
+    <!-- ── 4. MAP & SITES ── -->
+    <div class="help-section" id="hs4">
+      <div class="help-h2">🗺️ Map & Site Entry</div>
+
+      <div class="help-h3">Setting Sites</div>
+      <div class="help-kv">
+        <div class="help-key">Map click</div><div class="help-val">First click = Site A, second click = Site B. Repeats.</div>
+        <div class="help-key">City search</div><div class="help-val">Type any city, town, or country name. Live autocomplete via OpenStreetMap Nominatim. Selecting a result pins the marker and centers the map.</div>
+        <div class="help-key">Decimal (DD)</div><div class="help-val">Enter latitude/longitude as decimal degrees directly.</div>
+        <div class="help-key">DMS</div><div class="help-val">Toggle to DMS mode to enter degrees°, minutes′, seconds″ with N/S/E/W hemisphere selectors. All formats stay in sync.</div>
+      </div>
+
+      <div class="help-h3">Draggable Markers</div>
+      <div class="help-p">Both Site A (blue) and Site B (green) markers are draggable. Drag to reposition — the link line, distance label, coordinate inputs, and MIMO calculation all update live during the drag. The terrain profile re-fetches automatically 1 second after you release.</div>
+
+      <div class="help-h3">Link Distance Label</div>
+      <div class="help-p">A floating label at the midpoint of the dashed link line shows the current distance and h_opt. It updates instantly as you drag.</div>
+
+      <div class="help-h3">Map Layers</div>
+      <div class="help-kv">
+        <div class="help-key">🌍 Street</div><div class="help-val">OpenStreetMap standard tiles.</div>
+        <div class="help-key">🛰 Satellite</div><div class="help-val">Esri World Imagery.</div>
+        <div class="help-key">⛰ Terrain</div><div class="help-val">OpenTopoMap — shows elevation contours.</div>
+      </div>
+    </div>
+
+    <!-- ── 5. TERRAIN PROFILE ── -->
+    <div class="help-section" id="hs5">
+      <div class="help-h2">⛰️ Terrain Profile & Line of Sight</div>
+
+      <div class="help-p">The terrain profiler fetches SRTM 90m elevation data along the great-circle path between the two sites and plots it as a cross-section with LOS and Fresnel zone analysis.</div>
+
+      <div class="help-h3">How it works</div>
+      <div class="help-kv">
+        <div class="help-key">Data source</div><div class="help-val">opentopodata.org (SRTM 90m), with fallback to open-elevation.com. 61 samples along the great-circle path.</div>
+        <div class="help-key">Auto-trigger</div><div class="help-val">Profile loads automatically when both sites are set, and re-fetches 1 second after any marker move.</div>
+        <div class="help-key">LOS line</div><div class="help-val">Blue dashed line from Site A antenna tip (ground + AGL height) to Site B antenna tip.</div>
+        <div class="help-key">Fresnel 60%</div><div class="help-val">Green band showing the 60% Fresnel zone clearance envelope. Obstructions inside this zone are highlighted in red.</div>
+      </div>
+
+      <div class="help-h3">Antenna Heights AGL</div>
+      <div class="help-p">Enter the antenna height above ground level (AGL) for each site. This raises or lowers the LOS endpoints. Changing heights auto-refreshes the profile after a short delay.</div>
+
+      <div class="help-h3">▲ Optimise Heights</div>
+      <div class="help-p">Automatically calculates the minimum tower heights at each site to achieve 60% Fresnel zone clearance (+ 0.5 m margin) at every point along the path. Results are filled into the AGL inputs and the profile is re-fetched.</div>
+
+      <div class="help-h3">LOS Status Badge</div>
+      <div class="help-p">
+        <span class="help-badge hb-green">✓ Clear LOS</span> No terrain above the LOS path. Shows minimum clearance in metres.<br>
+        <span class="help-badge hb-red">✗ Obstructed</span> One or more points where terrain exceeds the LOS height.
+      </div>
+
+      <div class="help-tip">
+        ⚠️ SRTM 90m data has limited resolution — suitable for initial planning only. Verify with a professional RF survey for final installation.
+      </div>
+    </div>
+
+    <!-- ── 6. MODULATION TABLE ── -->
+    <div class="help-section" id="hs6">
+      <div class="help-h2">📋 Modulation Lookup Table</div>
+
+      <div class="help-p">The table lists all modulation orders from 4KQAM (highest) to BPSK (lowest), with their MSE thresholds and throughput capacity for the selected channel bandwidth. Status is determined by comparing MSE_max against each threshold.</div>
+
+      <div class="help-kv">
+        <div class="help-key" style="color:var(--blue)">✓ MAX SUPPORTED</div>
+        <div class="help-val">The highest modulation achievable at the current α and BW. Highlighted in blue.</div>
+        <div class="help-key" style="color:var(--green)">✓ Supported</div>
+        <div class="help-val">Modulations below the ceiling — always usable, just not peak capacity.</div>
+        <div class="help-key" style="color:var(--red)">✗ Not supported</div>
+        <div class="help-val">Modulations above the ceiling — MSE requirement cannot be met at current spacing.</div>
+      </div>
+
+      <div class="help-h3">MIMO Configuration Selector</div>
+      <div class="help-p">The <b>1+0 / 2×2 MIMO / 4×4 MIMO</b> buttons above the table control how capacity values are displayed. The base figures are 1+0 (single carrier). Selecting 2×2 MIMO multiplies all capacity values by 2; selecting 4×4 MIMO multiplies by 4. This reflects the spatial multiplexing gain of each MIMO mode.</div>
+
+      <div class="help-kv">
+        <div class="help-key">1+0</div><div class="help-val">Base single-carrier capacity — no multiplier.</div>
+        <div class="help-key">2×2 MIMO</div><div class="help-val">Capacity ×2 — two independent spatial streams.</div>
+        <div class="help-key">4×4 MIMO</div><div class="help-val">Capacity ×4 — four independent spatial streams.</div>
+      </div>
+
+      <div class="help-h3">Capacity Columns</div>
+      <div class="help-p">Each column shows throughput in Mbps for a specific Ethernet frame size (64B, 128B, 256B, 512B, 1024B, 1518B). Values are from Ceragon product data for the selected BW and modulation. Entries shown as <b>N/A</b> indicate that modulation is not supported at that BW/frame size. Values ≥ 1000 Mbps are displayed as Gbps (e.g., 1.27 G).</div>
+
+      <div class="help-h3">When α is out of range</div>
+      <div class="help-p">If α &lt; 0.5 or α &gt; 1.5, all modulations are marked <span class="help-badge hb-red">✗ Not supported</span> — MIMO cannot operate effectively at that spacing.</div>
+
+      <div class="help-h3">Changing Channel BW</div>
+      <div class="help-p">Each BW has slightly different MSE thresholds and capacity values. The table and column header update automatically when you change the BW selector. The 224 MHz band has 12 modulation levels (no separate 1KL/1KH split).</div>
+
+      <div class="help-tip">
+        💡 The MSE thresholds reflect Ceragon IP-20C / FibeAir® product specifications. MSE_max = −38 − (SNRᵢ − 3 dB), where the −3 dB is a conservative safety margin applied before the lookup.
+      </div>
+    </div>
+
+  </div><!-- /help-body -->
+
+  <!-- Footer nav -->
+  <div class="help-footer">
+    <button class="help-nav-btn" id="helpPrev" onclick="stepHelp(-1)" disabled>← Previous</button>
+    <span class="help-page-indicator" id="helpPageInd">1 / 7</span>
+    <button class="help-nav-btn primary" id="helpNext" onclick="stepHelp(1)">Next →</button>
+  </div>
+
+</div><!-- /help-modal -->
+</div><!-- /help-overlay -->
+
+<script>
+// ── HELP MODAL ──
+let _helpTab = 0;
+const HELP_TABS = 7;
+
+function showHelp() {
+  document.getElementById('helpOverlay').classList.add('open');
+  gotoHelpTab(0);
+  document.addEventListener('keydown', _helpKeyHandler);
+}
+function closeHelp() {
+  document.getElementById('helpOverlay').classList.remove('open');
+  document.removeEventListener('keydown', _helpKeyHandler);
+}
+function _helpKeyHandler(e) {
+  if (e.key === 'Escape') closeHelp();
+  if (e.key === 'ArrowRight') stepHelp(1);
+  if (e.key === 'ArrowLeft') stepHelp(-1);
+}
+function gotoHelpTab(idx) {
+  _helpTab = Math.max(0, Math.min(HELP_TABS - 1, idx));
+  // Sections
+  document.querySelectorAll('.help-section').forEach((s,i) => s.classList.toggle('active', i === _helpTab));
+  // Tab buttons
+  document.querySelectorAll('.help-tab').forEach((t,i) => t.classList.toggle('active', i === _helpTab));
+  // Scroll active tab into view
+  document.querySelectorAll('.help-tab')[_helpTab]?.scrollIntoView({block:'nearest',inline:'center'});
+  // Nav buttons
+  document.getElementById('helpPrev').disabled = _helpTab === 0;
+  document.getElementById('helpNext').disabled = _helpTab === HELP_TABS - 1;
+  document.getElementById('helpNext').textContent = _helpTab === HELP_TABS - 1 ? '✓ Done' : 'Next →';
+  document.getElementById('helpNext').onclick = _helpTab === HELP_TABS - 1 ? closeHelp : () => stepHelp(1);
+  document.getElementById('helpPageInd').textContent = (_helpTab + 1) + ' / ' + HELP_TABS;
+  // Scroll content to top
+  document.querySelector('.help-body').scrollTop = 0;
+}
+// ── EXPIRY CHECK ──
+(function() {
+  const EXPIRY = new Date('2026-10-01T00:00:00'); // expires after 30 Sep 2026
+  const BYPASS_USER = 'ronent';
+  const SESSION_KEY = 'mimoUnlocked';
+
+  function isExpired() {
+    return new Date() >= EXPIRY;
+  }
+
+  function showExpiry() {
+    document.getElementById('expiryOverlay').classList.add('show');
+  }
+
+  function hideExpiry() {
+    document.getElementById('expiryOverlay').classList.remove('show');
+  }
+
+  window.checkExpiryUser = function() {
+    const val = (document.getElementById('expiryUser').value || '').trim().toLowerCase();
+    const errEl = document.getElementById('expiryErr');
+    if (val === BYPASS_USER) {
+      try { sessionStorage.setItem(SESSION_KEY, '1'); } catch(e) {}
+      hideExpiry();
+      errEl.textContent = '';
+    } else {
+      errEl.textContent = 'Unrecognised username. Access denied.';
+      document.getElementById('expiryUser').value = '';
+    }
+  };
+
+  // Run on load
+  if (isExpired()) {
+    let unlocked = false;
+    try { unlocked = sessionStorage.getItem(SESSION_KEY) === '1'; } catch(e) {}
+    if (!unlocked) {
+      showExpiry();
+    }
+  }
+  // ── Countdown display ──
+  function updateCountdown() {
+    const el = document.getElementById('expiryCountdown');
+    const badge = document.getElementById('expiryBadge');
+    if (!el) return;
+    const now = new Date();
+    const diff = EXPIRY - now;
+    if (diff <= 0) {
+      el.textContent = 'EXPIRED';
+      if (badge) badge.classList.add('urgent');
+      return;
+    }
+    const days  = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins  = Math.floor((diff % 3600000)  / 60000);
+    const secs  = Math.floor((diff % 60000)    / 1000);
+
+    if (days > 30) {
+      el.textContent = `Expires in ${days}d`;
+    } else if (days > 0) {
+      el.textContent = `Expires in ${days}d ${hours}h`;
+      if (days <= 14 && badge) badge.classList.add('urgent');
+    } else {
+      el.textContent = `${hours}h ${mins}m ${secs}s`;
+      if (badge) badge.classList.add('urgent');
+    }
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+})();
+</script>
